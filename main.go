@@ -15,7 +15,7 @@ var (
 const (
 	FontHeight = 10
 	FontWidth  = 6
-	X          = 120 - 3*16
+	X          = (firefly.Width - FontWidth*16) / 2
 	Y          = 50
 )
 
