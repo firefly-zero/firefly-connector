@@ -15,8 +15,8 @@ var (
 const (
 	FontHeight = 10
 	FontWidth  = 6
-	X          = 120 - 3*13
-	Y          = 71
+	X          = 120 - 3*16
+	Y          = 50
 )
 
 const (
@@ -32,8 +32,7 @@ func init() {
 }
 
 func boot() {
-	buf := [655]byte{}
-	font = firefly.LoadFile("font", buf[:]).Font()
+	font = firefly.LoadFile("font", nil).Font()
 }
 
 func update() {
@@ -143,7 +142,7 @@ func drawButtons() {
 	}
 	boxWidth := firefly.Width - margin*2
 	btnWidth := FontWidth * 7
-	y := 96
+	y := 120
 
 	if !stopped {
 		x := (firefly.Width - btnWidth) / 2
