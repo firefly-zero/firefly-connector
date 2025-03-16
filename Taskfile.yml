@@ -16,4 +16,4 @@ tasks:
       - git push
       - git push --tags
       - gh release create --generate-notes {{.CLI_ARGS}}
-      - gh release upload {{.CLI_ARGS}} lux.snek.zip
+      - gh release upload {{.CLI_ARGS}} sys.connector.zip
