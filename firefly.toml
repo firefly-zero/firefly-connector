@@ -1,7 +1,7 @@
 author_id = "sys"
 app_id = "connector"
 author_name = "System"
-app_name = "Multiplayer"
+app_name = "Connector"
 
 [files]
 font = { path = "eg_6x9.fff", url = "https://fonts.fireflyzero.com/fonts/ascii/eg_6x9.fff", sha256 = "b07e868a74a070efcf4ca65d180839da883d1e273b646d8c54261fadec638c77" }
