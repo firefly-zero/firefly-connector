@@ -3,10 +3,12 @@ package main
 import "github.com/firefly-zero/firefly-go/firefly"
 
 var (
-	peers firefly.Peers
-	font  firefly.Font
-	frame uint32
-	me    firefly.Peer
+	peers   firefly.Peers
+	font    firefly.Font
+	frame   uint32
+	me      firefly.Peer
+	oldBtns firefly.Buttons
+	stopped bool
 )
 
 const (
@@ -23,7 +25,8 @@ func init() {
 }
 
 func boot() {
-	font = firefly.LoadFile("font", nil).Font()
+	buf := [655]byte{}
+	font = firefly.LoadFile("font", buf[:]).Font()
 }
 
 func update() {
@@ -33,18 +36,54 @@ func update() {
 	if newPeers != peers {
 		peers = newPeers
 	}
+
+	newBtns := firefly.ReadButtons(me)
+	handleButtons(newBtns)
+	oldBtns = newBtns
+}
+
+func handleButtons(newBtns firefly.Buttons) {
+	// If a button is pressed, just track it and return.
+	// All actions the module does happen on button release, not press.
+	if newBtns.AnyPressed() {
+		return
+	}
+
+	// Connecting is not stopped, a button was pressed
+	// but is released now. Stop connecting.
+	if !stopped && oldBtns.AnyPressed() {
+		stopped = true
+		// TODO: stop accepting new peers
+		return
+	}
+
+	// Connecting is stopped. The user either confirms that all
+	// connected devices are good or cancels.
+	if stopped {
+		// confirm
+		if !newBtns.S && oldBtns.S {
+			firefly.Quit()
+		}
+		// cancel
+		if !newBtns.E && oldBtns.E {
+			firefly.Quit()
+		}
+	}
+
 }
 
 func render() {
 	firefly.ClearScreen(firefly.ColorWhite)
-	drawConnecting()
+	if !stopped {
+		drawConnecting()
+	}
 	drawPeers()
 }
 
 func drawConnecting() {
 	point := firefly.Point{X: X, Y: Y - FontHeight}
 	text := "Connecting..."
-	firefly.DrawText(text, font, point, firefly.ColorGray)
+	firefly.DrawText(text, font, point, firefly.ColorLightGray)
 
 	step := int(frame) / 5
 	var shift int
@@ -64,7 +103,7 @@ func drawPeers() {
 	for i, peer := range peers.Slice() {
 		name := firefly.GetName(peer)
 		if name == "" {
-			name = "???"
+			name = "<empty>"
 		}
 		point := firefly.Point{X: X, Y: Y + FontHeight*(i+1)}
 		if peer == me {
