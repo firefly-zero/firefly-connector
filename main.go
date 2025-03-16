@@ -18,6 +18,12 @@ const (
 	Y          = 71
 )
 
+const (
+	connStopped   = 1
+	connCancelled = 2
+	connFinished  = 3
+)
+
 func init() {
 	firefly.Boot = boot
 	firefly.Update = update
@@ -53,7 +59,7 @@ func handleButtons(newBtns firefly.Buttons) {
 	// but is released now. Stop connecting.
 	if !stopped && oldBtns.AnyPressed() {
 		stopped = true
-		// TODO: stop accepting new peers
+		setConnStatus(connStopped)
 		return
 	}
 
@@ -62,11 +68,13 @@ func handleButtons(newBtns firefly.Buttons) {
 	if stopped {
 		// confirm
 		if !newBtns.S && oldBtns.S {
-			firefly.Quit()
+			setConnStatus(connFinished)
+			return
 		}
 		// cancel
 		if !newBtns.E && oldBtns.E {
-			firefly.Quit()
+			setConnStatus(connCancelled)
+			return
 		}
 	}
 
@@ -100,7 +108,8 @@ func drawConnecting() {
 }
 
 func drawPeers() {
-	for i, peer := range peers.Slice() {
+	i := 0
+	for peer := range peers.Iter() {
 		name := firefly.GetName(peer)
 		if name == "" {
 			name = "<empty>"
@@ -111,5 +120,6 @@ func drawPeers() {
 			point.X += FontWidth * 5
 		}
 		firefly.DrawText(name, font, point, firefly.ColorBlack)
+		i++
 	}
 }
