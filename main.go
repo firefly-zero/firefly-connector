@@ -37,7 +37,11 @@ func update() {
 
 func render() {
 	firefly.ClearScreen(firefly.ColorWhite)
+	drawConnecting()
+	drawPeers()
+}
 
+func drawConnecting() {
 	point := firefly.Point{X: X, Y: Y - FontHeight}
 	text := "Connecting..."
 	firefly.DrawText(text, font, point, firefly.ColorGray)
@@ -54,11 +58,19 @@ func render() {
 	}
 	point = firefly.Point{X: X + shift*FontWidth, Y: Y - FontHeight}
 	firefly.DrawText(text, font, point, firefly.ColorBlack)
+}
 
-	// for i, peer := range peers.Slice() {
-	// 	name := firefly.GetName(peer)
-	// 	if name == "" {
-	// 		name = "???"
-	// 	}
-	// }
+func drawPeers() {
+	for i, peer := range peers.Slice() {
+		name := firefly.GetName(peer)
+		if name == "" {
+			name = "???"
+		}
+		point := firefly.Point{X: X, Y: Y + FontHeight*(i+1)}
+		if peer == me {
+			firefly.DrawText("you:", font, point, firefly.ColorBlue)
+			point.X += FontWidth * 5
+		}
+		firefly.DrawText(name, font, point, firefly.ColorBlack)
+	}
 }
