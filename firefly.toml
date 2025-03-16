@@ -1,6 +1,6 @@
-author_id = "gram"
+author_id = "sys"
 app_id = "connector"
-author_name = "Gram"
+author_name = "System"
 app_name = "Multiplayer"
 
 [files]
