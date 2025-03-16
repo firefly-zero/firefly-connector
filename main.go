@@ -3,12 +3,13 @@ package main
 import "github.com/firefly-zero/firefly-go/firefly"
 
 var (
-	peers   firefly.Peers
-	font    firefly.Font
-	frame   uint32
-	me      firefly.Peer
-	oldBtns firefly.Buttons
-	stopped bool
+	peers       firefly.Peers
+	font        firefly.Font
+	frame       uint32
+	me          firefly.Peer
+	oldBtns     firefly.Buttons
+	stopped     bool
+	dialogRight bool
 )
 
 const (
@@ -43,6 +44,7 @@ func update() {
 		peers = newPeers
 	}
 
+	handlePad()
 	newBtns := firefly.ReadButtons(me)
 	handleButtons(newBtns)
 	oldBtns = newBtns
@@ -65,19 +67,26 @@ func handleButtons(newBtns firefly.Buttons) {
 
 	// Connecting is stopped. The user either confirms that all
 	// connected devices are good or cancels.
-	if stopped {
-		// confirm
-		if !newBtns.S && oldBtns.S {
+	if stopped && !newBtns.S && oldBtns.S {
+		if dialogRight {
 			setConnStatus(connFinished)
-			return
-		}
-		// cancel
-		if !newBtns.E && oldBtns.E {
+		} else {
 			setConnStatus(connCancelled)
-			return
 		}
+		return
 	}
 
+}
+
+func handlePad() {
+	newPad, _ := firefly.ReadPad(me)
+	newDPad := newPad.DPad()
+	if newDPad.Left {
+		dialogRight = false
+	}
+	if newDPad.Right {
+		dialogRight = true
+	}
 }
 
 func render() {
@@ -86,6 +95,7 @@ func render() {
 		drawConnecting()
 	}
 	drawPeers()
+	drawButtons()
 }
 
 func drawConnecting() {
@@ -122,4 +132,59 @@ func drawPeers() {
 		firefly.DrawText(name, font, point, firefly.ColorBlack)
 		i++
 	}
+}
+
+func drawButtons() {
+	margin := 46
+	corner := firefly.Size{W: 4, H: 4}
+	boxStyle := firefly.Style{
+		StrokeColor: firefly.ColorDarkBlue,
+		StrokeWidth: 1,
+	}
+	boxWidth := firefly.Width - margin*2
+	btnWidth := FontWidth * 7
+	y := 96
+
+	if !stopped {
+		x := (firefly.Width - btnWidth) / 2
+		point := firefly.Point{X: x + 3, Y: y + 7}
+		firefly.DrawText(" stop", font, point, firefly.ColorDarkBlue)
+		if !dialogRight {
+			firefly.DrawRoundedRect(
+				firefly.Point{X: x, Y: y},
+				firefly.Size{W: btnWidth, H: 12},
+				corner,
+				boxStyle,
+			)
+		}
+	}
+
+	if stopped {
+		x := margin + boxWidth/2 - (btnWidth + btnWidth/2)
+		point := firefly.Point{X: x + 3, Y: y + 7}
+		firefly.DrawText("cancel", font, point, firefly.ColorDarkBlue)
+		if !dialogRight {
+			firefly.DrawRoundedRect(
+				firefly.Point{X: x, Y: y},
+				firefly.Size{W: btnWidth, H: 12},
+				corner,
+				boxStyle,
+			)
+		}
+	}
+
+	if stopped {
+		x := margin + boxWidth/2 + btnWidth/2
+		point := firefly.Point{X: x + 3, Y: y + 7}
+		firefly.DrawText("  ok", font, point, firefly.ColorDarkBlue)
+		if dialogRight {
+			firefly.DrawRoundedRect(
+				firefly.Point{X: x, Y: y},
+				firefly.Size{W: btnWidth, H: 12},
+				corner,
+				boxStyle,
+			)
+		}
+	}
+
 }
