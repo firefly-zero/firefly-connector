@@ -66,7 +66,7 @@ func handleButtons(newBtns firefly.Buttons) {
 	// but is released now. Stop connecting.
 	if !stopped && oldBtns.AnyPressed() {
 		stopped = true
-		onExit(connStopped)
+		setConnStatus(connStopped)
 		return
 	}
 
