@@ -64,20 +64,30 @@ func handleButtons(newBtns firefly.Buttons) {
 		return
 	}
 
-	// Connecting is stopped. The user either confirms that all
-	// connected devices are good or cancels.
-	if stopped && !newBtns.S && oldBtns.S {
-		if dialogRight {
-			setConnStatus(connFinished)
-		} else {
+	// Connecting is stopped.
+	if stopped {
+		// If nobody else connected, cancel automatically.
+		if peers.Len() == 1 {
 			setConnStatus(connCancelled)
 		}
-		return
+		// The user either confirms that all
+		// connected devices are good or cancels.
+		if !newBtns.S && oldBtns.S {
+			if dialogRight {
+				setConnStatus(connFinished)
+			} else {
+				setConnStatus(connCancelled)
+			}
+			return
+		}
 	}
 
 }
 
 func handlePad() {
+	if !stopped {
+		return
+	}
 	newPad, _ := firefly.ReadPad(me)
 	newDPad := newPad.DPad()
 	if newDPad.Left {
@@ -145,9 +155,13 @@ func drawButtons() {
 	y := 120
 
 	if !stopped {
+		text := " stop"
+		if peers.Len() == 1 {
+			text = "cancel"
+		}
 		x := (firefly.Width - btnWidth) / 2
 		point := firefly.Point{X: x + 3, Y: y + 7}
-		firefly.DrawText(" stop", font, point, firefly.ColorDarkBlue)
+		firefly.DrawText(text, font, point, firefly.ColorDarkBlue)
 		if !dialogRight {
 			firefly.DrawRoundedRect(
 				firefly.Point{X: x, Y: y},
