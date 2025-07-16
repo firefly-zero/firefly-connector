@@ -5,7 +5,9 @@ import "github.com/firefly-zero/firefly-go/firefly"
 var (
 	peers       firefly.Peers
 	font        firefly.Font
+	splash      firefly.Image
 	frame       uint32
+	exited      bool
 	me          firefly.Peer
 	oldBtns     firefly.Buttons
 	stopped     bool
@@ -33,9 +35,13 @@ func init() {
 
 func boot() {
 	font = firefly.LoadFile("font", nil).Font()
+	splash = firefly.LoadFile("_splash", nil).Image()
 }
 
 func update() {
+	if exited {
+		return
+	}
 	frame += 1
 	me = firefly.GetMe()
 	newPeers := firefly.GetPeers()
@@ -60,7 +66,7 @@ func handleButtons(newBtns firefly.Buttons) {
 	// but is released now. Stop connecting.
 	if !stopped && oldBtns.AnyPressed() {
 		stopped = true
-		setConnStatus(connStopped)
+		onExit(connStopped)
 		return
 	}
 
@@ -68,20 +74,26 @@ func handleButtons(newBtns firefly.Buttons) {
 	if stopped {
 		// If nobody else connected, cancel automatically.
 		if peers.Len() == 1 {
-			setConnStatus(connCancelled)
+			onExit(connCancelled)
+			return
 		}
 		// The user either confirms that all
 		// connected devices are good or cancels.
 		if !newBtns.S && oldBtns.S {
 			if dialogRight {
-				setConnStatus(connFinished)
+				onExit(connFinished)
 			} else {
-				setConnStatus(connCancelled)
+				onExit(connCancelled)
 			}
 			return
 		}
 	}
+}
 
+func onExit(status uint32) {
+	exited = true
+	firefly.DrawImage(splash, firefly.Point{})
+	setConnStatus(status)
 }
 
 func handlePad() {
@@ -99,6 +111,9 @@ func handlePad() {
 }
 
 func render() {
+	if exited {
+		return
+	}
 	firefly.ClearScreen(firefly.ColorWhite)
 	if !stopped {
 		drawConnecting()
@@ -154,6 +169,8 @@ func drawButtons() {
 	btnWidth := FontWidth * 7
 	y := 120
 
+	// Draw "stop"/"cancel" button depending on
+	// if there are any other peers connected.
 	if !stopped {
 		text := " stop"
 		if peers.Len() == 1 {
@@ -172,6 +189,7 @@ func drawButtons() {
 		}
 	}
 
+	// Draw "cancel" button
 	if stopped {
 		x := margin + boxWidth/2 - (btnWidth + btnWidth/2)
 		point := firefly.Point{X: x + 3, Y: y + 7}
@@ -186,6 +204,7 @@ func drawButtons() {
 		}
 	}
 
+	// Draw "ok" button.
 	if stopped {
 		x := margin + boxWidth/2 + btnWidth/2
 		point := firefly.Point{X: x + 3, Y: y + 7}
