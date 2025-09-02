@@ -160,11 +160,6 @@ func drawPeers() {
 
 func drawButtons() {
 	margin := 46
-	corner := firefly.Size{W: 4, H: 4}
-	boxStyle := firefly.Style{
-		StrokeColor: firefly.ColorDarkBlue,
-		StrokeWidth: 1,
-	}
 	boxWidth := firefly.Width - margin*2
 	btnWidth := FontWidth * 7
 	y := 120
@@ -177,16 +172,7 @@ func drawButtons() {
 			text = "cancel"
 		}
 		x := (firefly.Width - btnWidth) / 2
-		point := firefly.Point{X: x + 3, Y: y + 7}
-		firefly.DrawText(text, font, point, firefly.ColorDarkBlue)
-		if !dialogRight {
-			firefly.DrawRoundedRect(
-				firefly.Point{X: x, Y: y},
-				firefly.Size{W: btnWidth, H: 12},
-				corner,
-				boxStyle,
-			)
-		}
+		drawButton(x, text, !dialogRight)
 	}
 
 	// Draw "cancel" button
@@ -195,28 +181,35 @@ func drawButtons() {
 		point := firefly.Point{X: x + 3, Y: y + 7}
 		firefly.DrawText("cancel", font, point, firefly.ColorDarkBlue)
 		if !dialogRight {
-			firefly.DrawRoundedRect(
-				firefly.Point{X: x, Y: y},
-				firefly.Size{W: btnWidth, H: 12},
-				corner,
-				boxStyle,
-			)
+			drawButton(x, "cancel", !dialogRight)
 		}
 	}
 
 	// Draw "ok" button.
 	if stopped {
 		x := margin + boxWidth/2 + btnWidth/2
-		point := firefly.Point{X: x + 3, Y: y + 7}
-		firefly.DrawText("  ok", font, point, firefly.ColorDarkBlue)
-		if dialogRight {
-			firefly.DrawRoundedRect(
-				firefly.Point{X: x, Y: y},
-				firefly.Size{W: btnWidth, H: 12},
-				corner,
-				boxStyle,
-			)
-		}
+		drawButton(x, "  ok", dialogRight)
 	}
 
+}
+
+func drawButton(x int, t string, selected bool) {
+	y := 120
+
+	corner := firefly.Size{W: 4, H: 4}
+	boxStyle := firefly.Style{
+		StrokeColor: firefly.ColorDarkBlue,
+		StrokeWidth: 1,
+	}
+	btnWidth := FontWidth * 7
+	point := firefly.Point{X: x + 3, Y: y + 7}
+	firefly.DrawText(t, font, point, firefly.ColorDarkBlue)
+	if selected {
+		firefly.DrawRoundedRect(
+			firefly.Point{X: x, Y: y},
+			firefly.Size{W: btnWidth, H: 12},
+			corner,
+			boxStyle,
+		)
+	}
 }
