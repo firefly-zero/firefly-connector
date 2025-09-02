@@ -162,7 +162,6 @@ func drawButtons() {
 	margin := 46
 	boxWidth := firefly.Width - margin*2
 	btnWidth := FontWidth * 7
-	y := 120
 
 	// Draw "stop"/"cancel" button depending on
 	// if there are any other peers connected.
@@ -178,11 +177,7 @@ func drawButtons() {
 	// Draw "cancel" button
 	if stopped {
 		x := margin + boxWidth/2 - (btnWidth + btnWidth/2)
-		point := firefly.Point{X: x + 3, Y: y + 7}
-		firefly.DrawText("cancel", font, point, firefly.ColorDarkBlue)
-		if !dialogRight {
-			drawButton(x, "cancel", !dialogRight)
-		}
+		drawButton(x, "cancel", !dialogRight)
 	}
 
 	// Draw "ok" button.
@@ -195,7 +190,6 @@ func drawButtons() {
 
 func drawButton(x int, t string, selected bool) {
 	y := 120
-
 	corner := firefly.Size{W: 4, H: 4}
 	boxStyle := firefly.Style{
 		StrokeColor: firefly.ColorDarkBlue,
