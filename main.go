@@ -35,8 +35,8 @@ func init() {
 }
 
 func boot() {
-	font = firefly.LoadFile("font", nil).Font()
-	splash = firefly.LoadFile("_splash", nil).Image()
+	font = firefly.LoadFont("font", nil)
+	splash = firefly.LoadImage("_splash", nil)
 }
 
 func update() {
@@ -166,7 +166,7 @@ func drawBackgroundBox() {
 }
 
 func drawLoadingBar() {
-	point := firefly.Point{X: X, Y: Y - FontHeight}
+	point := firefly.P(X, Y-FontHeight)
 	text := "scanning..."
 	firefly.DrawText(text, font, point, firefly.ColorLightGray)
 
@@ -180,7 +180,7 @@ func drawLoadingBar() {
 		shift = 0
 		text = text[:step%length]
 	}
-	point = firefly.Point{X: X + shift*FontWidth, Y: Y - FontHeight}
+	point = firefly.P(X+shift*FontWidth, Y-FontHeight)
 	firefly.DrawText(text, font, point, firefly.ColorBlack)
 }
 
@@ -191,7 +191,7 @@ func drawPeers() {
 		if name == "" {
 			name = "<empty>"
 		}
-		point := firefly.Point{X: X, Y: Y + FontHeight*(i+1)}
+		point := firefly.P(X, Y+FontHeight*(i+1))
 		if peer == me {
 			firefly.DrawText("you:", font, point, firefly.ColorGreen)
 			point.X += FontWidth * 5
@@ -230,18 +230,16 @@ func drawButtons() {
 func drawButton(x int, t string, selected bool) {
 	y := 120
 	if selected {
-		corner := firefly.Size{W: 4, H: 4}
+		corner := firefly.S(4, 4)
 		firefly.DrawRoundedRect(
-			firefly.Point{X: x + 1, Y: y + 1},
-			firefly.Size{W: btnWidth, H: 12},
+			firefly.P(x+1, y+1),
+			firefly.S(btnWidth, 12),
 			corner,
-			firefly.Style{
-				FillColor: firefly.ColorBlack,
-			},
+			firefly.Solid(firefly.ColorBlack),
 		)
 		firefly.DrawRoundedRect(
-			firefly.Point{X: x, Y: y},
-			firefly.Size{W: btnWidth, H: 12},
+			firefly.P(x, y),
+			firefly.S(btnWidth, 12),
 			corner,
 			firefly.Style{
 				FillColor:   firefly.ColorLightGreen,
@@ -251,6 +249,6 @@ func drawButton(x int, t string, selected bool) {
 		)
 	}
 
-	point := firefly.Point{X: x + 3, Y: y + 7}
+	point := firefly.P(x+3, y+7)
 	firefly.DrawText(t, font, point, firefly.ColorBlack)
 }
