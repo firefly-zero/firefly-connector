@@ -160,9 +160,6 @@ func drawPeers() {
 }
 
 func drawButtons() {
-	margin := 46
-	boxWidth := firefly.Width - margin*2
-
 	// Draw "stop"/"cancel" button depending on
 	// if there are any other peers connected.
 	if !stopped {
@@ -176,13 +173,13 @@ func drawButtons() {
 
 	// Draw "cancel" button
 	if stopped {
-		x := margin + boxWidth/2 - (btnWidth + btnWidth/2)
+		x := firefly.Width/2 - (btnWidth + btnWidth/2)
 		drawButton(x, "cancel", !dialogRight)
 	}
 
 	// Draw "ok" button.
 	if stopped {
-		x := margin + boxWidth/2 + btnWidth/2
+		x := firefly.Width/2 + btnWidth/2
 		drawButton(x, "  ok", dialogRight)
 	}
 
