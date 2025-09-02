@@ -17,6 +17,7 @@ var (
 const (
 	FontHeight = 10
 	FontWidth  = 6
+	btnWidth   = FontWidth * 7
 	X          = (firefly.Width - FontWidth*16) / 2
 	Y          = 50
 )
@@ -124,7 +125,7 @@ func render() {
 
 func drawConnecting() {
 	point := firefly.Point{X: X, Y: Y - FontHeight}
-	text := "Connecting..."
+	text := "scanning..."
 	firefly.DrawText(text, font, point, firefly.ColorLightGray)
 
 	step := int(frame) / 5
@@ -150,7 +151,7 @@ func drawPeers() {
 		}
 		point := firefly.Point{X: X, Y: Y + FontHeight*(i+1)}
 		if peer == me {
-			firefly.DrawText("you:", font, point, firefly.ColorBlue)
+			firefly.DrawText("you:", font, point, firefly.ColorGreen)
 			point.X += FontWidth * 5
 		}
 		firefly.DrawText(name, font, point, firefly.ColorBlack)
@@ -161,7 +162,6 @@ func drawPeers() {
 func drawButtons() {
 	margin := 46
 	boxWidth := firefly.Width - margin*2
-	btnWidth := FontWidth * 7
 
 	// Draw "stop"/"cancel" button depending on
 	// if there are any other peers connected.
@@ -190,20 +190,28 @@ func drawButtons() {
 
 func drawButton(x int, t string, selected bool) {
 	y := 120
-	corner := firefly.Size{W: 4, H: 4}
-	boxStyle := firefly.Style{
-		StrokeColor: firefly.ColorDarkBlue,
-		StrokeWidth: 1,
-	}
-	btnWidth := FontWidth * 7
-	point := firefly.Point{X: x + 3, Y: y + 7}
-	firefly.DrawText(t, font, point, firefly.ColorDarkBlue)
 	if selected {
+		corner := firefly.Size{W: 4, H: 4}
+		firefly.DrawRoundedRect(
+			firefly.Point{X: x + 1, Y: y + 1},
+			firefly.Size{W: btnWidth, H: 12},
+			corner,
+			firefly.Style{
+				FillColor: firefly.ColorBlack,
+			},
+		)
 		firefly.DrawRoundedRect(
 			firefly.Point{X: x, Y: y},
 			firefly.Size{W: btnWidth, H: 12},
 			corner,
-			boxStyle,
+			firefly.Style{
+				FillColor:   firefly.ColorLightGreen,
+				StrokeColor: firefly.ColorBlack,
+				StrokeWidth: 1,
+			},
 		)
 	}
+
+	point := firefly.Point{X: x + 3, Y: y + 7}
+	firefly.DrawText(t, font, point, firefly.ColorBlack)
 }
