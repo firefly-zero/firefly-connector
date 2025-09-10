@@ -18,7 +18,7 @@ const (
 	FontHeight = 10
 	FontWidth  = 6
 	btnWidth   = FontWidth * 7
-	X          = (firefly.Width - FontWidth*16) / 2
+	X          = (firefly.Width - FontWidth*20) / 2
 	Y          = 50
 )
 
@@ -117,6 +117,7 @@ func render() {
 	}
 	drawBackgroundGrid()
 	drawBackgroundBox()
+	drawHeader()
 	if !stopped {
 		drawLoadingBar()
 	}
@@ -165,9 +166,16 @@ func drawBackgroundBox() {
 	)
 }
 
-func drawLoadingBar() {
+func drawHeader() {
 	point := firefly.P(X, Y-FontHeight)
-	text := "scanning..."
+	text := "connected peers:"
+	firefly.DrawText(text, font, point, firefly.ColorLightGray)
+}
+
+func drawLoadingBar() {
+	y := Y + peers.Len()*FontHeight
+	point := firefly.P(X, y)
+	text := "scanning for more..."
 	firefly.DrawText(text, font, point, firefly.ColorLightGray)
 
 	step := int(frame) / 5
@@ -180,7 +188,7 @@ func drawLoadingBar() {
 		shift = 0
 		text = text[:step%length]
 	}
-	point = firefly.P(X+shift*FontWidth, Y-FontHeight)
+	point = firefly.P(X+shift*FontWidth, y)
 	firefly.DrawText(text, font, point, firefly.ColorBlack)
 }
 
@@ -191,7 +199,7 @@ func drawPeers() {
 		if name == "" {
 			name = "<empty>"
 		}
-		point := firefly.P(X, Y+FontHeight*(i+1))
+		point := firefly.P(X, Y+FontHeight*i)
 		if peer == me {
 			firefly.DrawText("you:", font, point, firefly.ColorGreen)
 			point.X += FontWidth * 5
