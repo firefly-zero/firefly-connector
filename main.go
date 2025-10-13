@@ -80,7 +80,9 @@ func handleButtons(newBtns firefly.Buttons) {
 		}
 		// The user either confirms that all
 		// connected devices are good or cancels.
-		if !newBtns.S && oldBtns.S {
+		s := !newBtns.S && oldBtns.S
+		e := !newBtns.E && oldBtns.E
+		if s || e {
 			if dialogRight {
 				onExit(connFinished)
 			} else {
@@ -236,15 +238,22 @@ func drawButtons() {
 }
 
 func drawButton(x int, t string, selected bool) {
+	pressed := oldBtns.E || oldBtns.S
 	y := 120
+	if pressed {
+		x++
+		y++
+	}
 	if selected {
 		corner := firefly.S(4, 4)
-		firefly.DrawRoundedRect(
-			firefly.P(x+1, y+1),
-			firefly.S(btnWidth, 12),
-			corner,
-			firefly.Solid(firefly.ColorBlack),
-		)
+		if !pressed {
+			firefly.DrawRoundedRect(
+				firefly.P(x+1, y+1),
+				firefly.S(btnWidth, 12),
+				corner,
+				firefly.Solid(firefly.ColorBlack),
+			)
+		}
 		firefly.DrawRoundedRect(
 			firefly.P(x, y),
 			firefly.S(btnWidth, 12),
