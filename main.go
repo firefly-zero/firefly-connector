@@ -3,13 +3,14 @@ package main
 import "github.com/firefly-zero/firefly-go/firefly"
 
 var (
-	peers       firefly.Peers
-	font        firefly.Font
-	splash      firefly.Image
+	peers   firefly.Peers
+	font    firefly.Font
+	splash  firefly.File
+	me      firefly.Peer
+	oldBtns firefly.Buttons
+
 	frame       uint32
 	exited      bool
-	me          firefly.Peer
-	oldBtns     firefly.Buttons
 	stopped     bool
 	dialogRight bool
 )
@@ -36,7 +37,6 @@ func init() {
 
 func boot() {
 	font = firefly.LoadFont("font", nil)
-	splash = firefly.LoadImage("_splash", nil)
 }
 
 func update() {
@@ -54,6 +54,24 @@ func update() {
 	newBtns := firefly.ReadButtons(me)
 	handleButtons(newBtns)
 	oldBtns = newBtns
+
+	// Pre-load splash screen.
+	//
+	// The splash screen is rendered on the app exit.
+	// We don't want to load it in boot or right before the app exits
+	// to avoid the transition between the connector and the launcher
+	// feeling slow.
+	if frame == 10 {
+		getSplash()
+	}
+}
+
+// Load and cache the splash screen.
+func getSplash() firefly.Image {
+	if splash.Raw == nil {
+		splash = firefly.LoadFile("_splash", nil)
+	}
+	return splash.Image()
 }
 
 func handleButtons(newBtns firefly.Buttons) {
@@ -95,7 +113,7 @@ func handleButtons(newBtns firefly.Buttons) {
 
 func onExit(status uint32) {
 	exited = true
-	firefly.DrawImage(splash, firefly.Point{})
+	firefly.DrawImage(getSplash(), firefly.Point{})
 	setConnStatus(status)
 }
 
