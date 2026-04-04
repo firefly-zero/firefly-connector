@@ -44,7 +44,7 @@ func update() {
 		return
 	}
 	frame += 1
-	me = firefly.GetMe()
+	me = getMe()
 	newPeers := firefly.GetPeers()
 	if newPeers != peers {
 		peers = newPeers
@@ -66,9 +66,24 @@ func update() {
 	}
 }
 
+// Get the peer representing the current device.
+//
+// [firefly.GetMe] is designed to prevent on type level state drift.
+// However, in the connector, the drift is intentional.
+// So, we want to convert it to [firefly.Peer].
+func getMe() firefly.Peer {
+	me := firefly.GetMe()
+	for _, peer := range firefly.GetPeers().Slice() {
+		if me.Eq(peer) {
+			return peer
+		}
+	}
+	panic("")
+}
+
 // Load and cache the splash screen.
 func getSplash() firefly.Image {
-	if splash.Raw == nil {
+	if !splash.Exists() {
 		splash = firefly.LoadFile("_splash", nil)
 	}
 	return splash.Image()
@@ -77,13 +92,13 @@ func getSplash() firefly.Image {
 func handleButtons(newBtns firefly.Buttons) {
 	// If a button is pressed, just track it and return.
 	// All actions the module does happen on button release, not press.
-	if newBtns.AnyPressed() {
+	if newBtns.Any() {
 		return
 	}
 
 	// Connecting is not stopped, a button was pressed
 	// but is released now. Stop connecting.
-	if !stopped && oldBtns.AnyPressed() {
+	if !stopped && oldBtns.Any() {
 		stopped = true
 		setConnStatus(connStopped)
 		return
@@ -122,7 +137,7 @@ func handlePad() {
 		return
 	}
 	newPad, _ := firefly.ReadPad(me)
-	newDPad := newPad.DPad()
+	newDPad := newPad.DPad8()
 	if newDPad.Left {
 		dialogRight = false
 	}
@@ -220,7 +235,7 @@ func drawPeers() {
 			name = "<empty>"
 		}
 		point := firefly.P(X, Y+FontHeight*i)
-		if peer == me {
+		if me.Eq(peer) {
 			firefly.DrawText("you:", font, point, firefly.ColorGreen)
 			point.X += FontWidth * 5
 		}
@@ -252,7 +267,6 @@ func drawButtons() {
 		x := firefly.Width/2 + btnWidth/2
 		drawButton(x, "  ok", dialogRight)
 	}
-
 }
 
 func drawButton(x int, t string, selected bool) {
