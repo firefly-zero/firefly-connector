@@ -1,36 +1,28 @@
+use alloc::{string::String, vec::Vec};
 use core::mem::MaybeUninit;
 use firefly_rust::*;
 
 static mut STATE: MaybeUninit<State> = MaybeUninit::uninit();
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum Kind {
-    Rom,
-    Data,
-    Shots,
-    Badges,
-    Scores,
-}
-
-#[derive(Clone, Copy)]
-pub struct Switch {
-    pub kind: Kind,
-    pub selected: bool,
-}
-
-impl Switch {
-    fn new(kind: Kind) -> Self {
-        Self {
-            kind,
-            selected: false,
-        }
-    }
+pub enum Scene {
+    /// Searching for more peers.
+    Scanning,
+    /// Scanning is done, list peers and ask what to do next.
+    List,
+    /// Context menu for a peer.
+    PeerActions,
 }
 
 pub struct State {
     pub font: FileBuf,
     pub settings: Settings,
     pub input: firefly_ui::InputManager,
+    pub scene: Scene,
+    /// The currently selected peer.
+    pub peer: u8,
+    /// The list of names of all connected peers.
+    pub peers: Vec<String>,
 }
 
 pub fn get_state() -> &'static mut State {
@@ -47,6 +39,9 @@ pub fn load_state() {
         font,
         settings,
         input: firefly_ui::InputManager::new(),
+        scene: Scene::Scanning,
+        peer: 0,
+        peers: Vec::new(),
     };
     #[allow(static_mut_refs)]
     unsafe {
