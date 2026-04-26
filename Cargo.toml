@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 firefly-rust = { version = "0.13.2", features = ["alloc", "talc", "sudo"] }
 firefly-ui = "0.2.0"
+
+[patch.crates-io]
+firefly-ui = { path = "../firefly-ui" }

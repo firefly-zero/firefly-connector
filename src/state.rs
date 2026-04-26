@@ -21,6 +21,7 @@ pub struct State {
     pub scene: Scene,
     /// The currently selected peer.
     pub peer: u8,
+    pub cursor: u8,
     /// The list of names of all connected peers.
     pub peers: Vec<String>,
 }
@@ -41,6 +42,7 @@ pub fn load_state() {
         input: firefly_ui::InputManager::new(),
         scene: Scene::Scanning,
         peer: 0,
+        cursor: 0,
         peers: Vec::new(),
     };
     #[allow(static_mut_refs)]
