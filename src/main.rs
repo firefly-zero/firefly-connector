@@ -9,7 +9,7 @@ use alloc::{
     vec::Vec,
 };
 use firefly_rust::*;
-use firefly_ui::Input;
+use firefly_ui::{Input, draw_cursor};
 use state::*;
 
 #[unsafe(no_mangle)]
@@ -67,7 +67,31 @@ fn count_full_peers(names: &[String]) -> usize {
 }
 
 fn update_list(state: &mut State) {
-    // ...
+    match state.input.get() {
+        Input::Up => {
+            if state.cursor > 0 {
+                state.cursor -= 1;
+            } else {
+                state.peer = state.peer.saturating_sub(1);
+            }
+        }
+        Input::Down => {
+            if usize::from(state.peer) < state.peers.len() - 2 {
+                state.peer += 1;
+            } else if state.cursor < 3 {
+                state.cursor += 1;
+            }
+        }
+        Input::Left => {}
+        Input::Right => {}
+        Input::Select => {
+            if state.cursor == 0 {
+                state.scene = Scene::PeerActions;
+            }
+        }
+        Input::Back => {}
+        Input::None => {}
+    }
 }
 
 fn update_peer_actions(state: &mut State) {
@@ -75,7 +99,11 @@ fn update_peer_actions(state: &mut State) {
         Input::Up | Input::Left => state.cursor = 0,
         Input::Down | Input::Right => state.cursor = 1,
         Input::Select => if state.cursor == 0 {},
-        Input::Back | Input::None => {}
+        Input::Back => {
+            state.cursor = 0;
+            state.scene = Scene::List;
+        }
+        Input::None => {}
     }
 }
 
@@ -132,14 +160,44 @@ fn draw_list(state: &State) {
     firefly_ui::draw_title(title, false, &font, theme.accent);
 
     let line_h = font.char_height() as i32 + 4;
-    for (peer, i) in state.peers.iter().skip(1).zip(2..) {
-        let mut point = Point::new(20, 12 + i * line_h);
-        if i - 1 == i32::from(state.cursor) && state.input.pressed() {
+    for (peer, i) in state.peers.iter().skip(1).zip(1u8..) {
+        let selected = state.cursor == 0 && i - 1 == state.peer;
+        if selected {
+            draw_cursor(u32::from(i), theme, &font, state.input.pressed(), 0);
+        }
+
+        let mut point = Point::new(20, 12 + (i as i32 + 1) * line_h);
+        if selected && state.input.pressed() {
             point.x += 1;
             point.y += 1;
         }
         draw_text(peer, &font, point, theme.primary);
     }
+
+    let y = 12 + 6 * line_h + 2;
+    draw_line(
+        Point::new(12, y),
+        Point::new(WIDTH - 12, y),
+        LineStyle::new(theme.primary, 1),
+    );
+
+    if state.cursor == 1 {
+        draw_cursor(6, theme, &font, state.input.pressed(), 0);
+    }
+    let point = Point::new(20, 12 + 7 * line_h);
+    draw_text("connect more peers", &font, point, theme.primary);
+
+    if state.cursor == 2 {
+        draw_cursor(7, theme, &font, state.input.pressed(), 0);
+    }
+    let point = Point::new(20, 12 + 8 * line_h);
+    draw_text("confirm", &font, point, theme.primary);
+
+    if state.cursor == 3 {
+        draw_cursor(8, theme, &font, state.input.pressed(), 0);
+    }
+    let point = Point::new(20, 12 + 9 * line_h);
+    draw_text("cancel", &font, point, theme.primary);
 }
 
 fn draw_peer_actions(state: &State) {
