@@ -45,7 +45,7 @@ pub fn load_state() {
         peer: 0,
         cursor: 0,
         peers: Vec::new(),
-        peers_map: 0x_ffff_ffff,
+        peers_map: 0,
     };
     #[allow(static_mut_refs)]
     unsafe {

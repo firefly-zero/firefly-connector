@@ -38,7 +38,7 @@ extern "C" fn update() {
 
 fn update_scanning(state: &mut State) {
     if matches!(state.input.get(), Input::Back | Input::Select) {
-        if state.peers.len() <= 1 {
+        if state.peers_map == 0 {
             quit();
             return;
         }
@@ -60,6 +60,7 @@ fn update_scanning(state: &mut State) {
         state.cursor = 0;
         state.peer = 0;
         state.scene = Scene::List;
+        state.peers_map = (state.peers_map << 1) | 1;
     }
     state.peers = names;
 }
@@ -106,7 +107,9 @@ fn update_peer_actions(state: &mut State) {
         Input::Down | Input::Right => state.cursor = 1,
         Input::Select => {
             if state.cursor == 0 {
-                // ...
+                state.peers_map &= !(1u32 << state.peer);
+                state.peer = 0;
+                state.scene = Scene::Scanning;
             } else {
                 state.cursor = 0;
                 state.scene = Scene::List;
@@ -150,7 +153,7 @@ fn draw_scanning(state: &State) {
     let theme = state.settings.theme;
     let font = state.font.as_font();
     let title = "scanning...";
-    let option = if state.peers.len() <= 1 {
+    let option = if state.peers_map == 0 {
         "cancel"
     } else {
         "stop"
@@ -173,7 +176,13 @@ fn draw_list(state: &State) {
     firefly_ui::draw_title(title, false, &font, theme.accent);
 
     let line_h = font.char_height() as i32 + 4;
+    let mut peers_map = state.peers_map;
     for (peer, i) in state.peers.iter().skip(1).zip(1u8..) {
+        let removed = peers_map & 1 == 0;
+        peers_map <<= 1;
+        if removed {
+            continue;
+        }
         let selected = state.cursor == 0 && i - 1 == state.peer;
         if selected {
             draw_cursor(u32::from(i), theme, &font, state.input.pressed(), 0);
