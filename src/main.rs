@@ -81,8 +81,14 @@ fn update_list(state: &mut State) {
                 state.cursor += 1;
             }
         }
-        Input::Left => {}
-        Input::Right => {}
+        Input::Left => {
+            state.peer = 0;
+            state.cursor = 0;
+        }
+        Input::Right => {
+            state.peer = (state.peers.len() - 2) as u8;
+            state.cursor = 3;
+        }
         Input::Select => {
             match state.cursor {
                 // select a peer
