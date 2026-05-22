@@ -204,6 +204,12 @@ fn draw_list(state: &State) {
             point.y += 1;
         }
         let color = if removed {
+            let w = font.line_width_ascii(peer) as i32;
+            draw_line(
+                Point::new(point.x, point.y - 2),
+                Point::new(point.x + w, point.y - 2),
+                LineStyle::new(theme.secondary, 1),
+            );
             theme.secondary
         } else {
             theme.primary
