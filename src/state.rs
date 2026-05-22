@@ -24,6 +24,7 @@ pub struct State {
     pub cursor: u8,
     /// The list of names of all connected peers.
     pub peers: Vec<String>,
+    pub peers_map: u32,
 }
 
 pub fn get_state() -> &'static mut State {
@@ -44,6 +45,7 @@ pub fn load_state() {
         peer: 0,
         cursor: 0,
         peers: Vec::new(),
+        peers_map: 0x_ffff_ffff,
     };
     #[allow(static_mut_refs)]
     unsafe {

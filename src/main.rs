@@ -9,6 +9,17 @@ use firefly_rust::*;
 use firefly_ui::{Input, draw_cursor};
 use state::*;
 
+#[link(wasm_import_module = "misc")]
+unsafe extern "C" {
+    pub(crate) unsafe fn set_peers(peer_map: i32);
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn before_exit() {
+    let state = get_state();
+    unsafe { set_peers(state.peers_map as i32) };
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn boot() {
     load_state();
@@ -72,8 +83,16 @@ fn update_list(state: &mut State) {
         Input::Left => {}
         Input::Right => {}
         Input::Select => {
-            if state.cursor == 0 {
-                state.scene = Scene::PeerActions;
+            match state.cursor {
+                // select a peer
+                0 => state.scene = Scene::PeerActions,
+                // connect more
+                1 => state.scene = Scene::Scanning,
+                // confirm
+                2 => quit(),
+                // cancel
+                3 => state.peers_map = 0,
+                _ => {}
             }
         }
         Input::Back => {}
