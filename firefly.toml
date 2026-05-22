@@ -5,5 +5,5 @@ app_name = "Start multiplayer"
 lang = "rust"
 
 [files]
-ascii = { path = "eg_6x9.fff", url = "https://fonts.fireflyzero.com/fonts/ascii/eg_6x9.fff", sha256 = "b07e868a74a070efcf4ca65d180839da883d1e273b646d8c54261fadec638c77" }
+ascii = { path = "eg_6x9.fff", url = "https://fonts.fireflyzero.com/fonts/ascii/eg_6x9.fff", sha256 = "b07e868a74a070efcf4ca65d18839da883d1e273b646d8c54261fadec638c77" }
 _splash = { path = "splash.png" }

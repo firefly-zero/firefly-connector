@@ -4,10 +4,7 @@ extern crate alloc;
 
 mod state;
 
-use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::ToString, vec::Vec};
 use firefly_rust::*;
 use firefly_ui::{Input, draw_cursor};
 use state::*;
@@ -48,22 +45,12 @@ fn update_scanning(state: &mut State) {
         }
         names.push(name);
     }
-    if names.len() > 1 && count_full_peers(&state.peers) != count_full_peers(&names) {
+    if names.len() > 1 && names.len() > state.peers.len() {
         state.cursor = 0;
         state.peer = 0;
         state.scene = Scene::List;
     }
     state.peers = names;
-}
-
-fn count_full_peers(names: &[String]) -> usize {
-    let mut cnt = 0;
-    for name in names {
-        if !name.contains('?') {
-            cnt += 1;
-        }
-    }
-    cnt
 }
 
 fn update_list(state: &mut State) {
@@ -98,7 +85,14 @@ fn update_peer_actions(state: &mut State) {
     match state.input.get() {
         Input::Up | Input::Left => state.cursor = 0,
         Input::Down | Input::Right => state.cursor = 1,
-        Input::Select => if state.cursor == 0 {},
+        Input::Select => {
+            if state.cursor == 0 {
+                // ...
+            } else {
+                state.cursor = 0;
+                state.scene = Scene::List;
+            }
+        }
         Input::Back => {
             state.cursor = 0;
             state.scene = Scene::List;
