@@ -92,7 +92,10 @@ fn update_list(state: &mut State) {
                 // confirm
                 2 => quit(),
                 // cancel
-                3 => state.peers_map = 0,
+                3 => {
+                    state.peers_map = 0;
+                    quit();
+                }
                 _ => {}
             }
         }
@@ -109,11 +112,15 @@ fn update_peer_actions(state: &mut State) {
             if state.cursor == 0 {
                 state.peers_map &= !(1u32 << state.peer);
                 state.peer = 0;
-                state.scene = Scene::Scanning;
+                state.scene = if state.peers_map == 0 {
+                    Scene::Scanning
+                } else {
+                    Scene::List
+                };
             } else {
-                state.cursor = 0;
                 state.scene = Scene::List;
             }
+            state.cursor = 0;
         }
         Input::Back => {
             state.cursor = 0;
@@ -179,10 +186,7 @@ fn draw_list(state: &State) {
     let mut peers_map = state.peers_map;
     for (peer, i) in state.peers.iter().skip(1).zip(1u8..) {
         let removed = peers_map & 1 == 0;
-        peers_map <<= 1;
-        if removed {
-            continue;
-        }
+        peers_map >>= 1;
         let selected = state.cursor == 0 && i - 1 == state.peer;
         if selected {
             draw_cursor(u32::from(i), theme, &font, state.input.pressed(), 0);
@@ -193,7 +197,12 @@ fn draw_list(state: &State) {
             point.x += 1;
             point.y += 1;
         }
-        draw_text(peer, &font, point, theme.primary);
+        let color = if removed {
+            theme.secondary
+        } else {
+            theme.primary
+        };
+        draw_text(peer, &font, point, color);
     }
 
     let y = 12 + 6 * line_h + 2;
@@ -225,7 +234,7 @@ fn draw_list(state: &State) {
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
     let font = state.font.as_font();
-    let title = &state.peers[usize::from(state.peer)];
+    let title = &state.peers[usize::from(state.peer) + 1];
     let options = &["disconnect peer", "back to the list"];
     firefly_ui::draw_dialog(
         theme,
