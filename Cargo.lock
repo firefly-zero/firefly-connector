@@ -12,18 +12,18 @@ dependencies = [
 
 [[package]]
 name = "firefly-rust"
-version = "0.13.2"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c99a781c0a6e84cdf93cc10c8633fb6d1b064a56ff145326aa1ec97796b696a4"
+checksum = "56338bf159fd7795f99bcb52191a753684c47761552eb11eaa69ec578507b6e3"
 dependencies = [
  "talc",
 ]
 
 [[package]]
 name = "firefly-ui"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "898f7223cf0fc5fa566a979e947df63ca4f532ff697a998a80feb85bbe6222d7"
+checksum = "478d552504a25664736da091e9dbc0a1b0fa561569099a3f1ae16f8ab216772b"
 dependencies = [
  "firefly-rust",
 ]

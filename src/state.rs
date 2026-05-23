@@ -15,7 +15,7 @@ pub enum Scene {
 }
 
 pub struct State {
-    pub font: FileBuf,
+    pub font: FontBuf,
     pub settings: Settings,
     pub input: firefly_ui::InputManager,
     pub scene: Scene,
@@ -38,7 +38,7 @@ pub fn load_state() {
     let settings = get_settings(get_me());
     let font = load_file_buf("ascii").unwrap();
     let state = State {
-        font,
+        font: font.into(),
         settings,
         input: firefly_ui::InputManager::new(),
         scene: Scene::Scanning,

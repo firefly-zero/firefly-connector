@@ -151,20 +151,19 @@ extern "C" fn render() {
 
 fn draw_name(state: &State) {
     let theme = state.settings.theme;
-    let font = state.font.as_font();
+    let font = &state.font;
     let Some(name) = state.peers.first() else {
         return;
     };
     let mut point = Point::new(5, i32::from(font.char_height()) - 1);
     let prefix = "hello, ";
-    draw_text(prefix, &font, point, theme.primary);
+    draw_text(prefix, font, point, theme.primary);
     point.x += font.line_width_ascii(prefix) as i32;
-    draw_text(name, &font, point, theme.accent);
+    draw_text(name, font, point, theme.accent);
 }
 
 fn draw_scanning(state: &State) {
     let theme = state.settings.theme;
-    let font = state.font.as_font();
     let title = "scanning...";
     let option = if state.peers_map == 0 {
         "cancel"
@@ -173,7 +172,7 @@ fn draw_scanning(state: &State) {
     };
     firefly_ui::draw_dialog(
         theme,
-        &font,
+        &state.font,
         title,
         &[option],
         state.cursor,
@@ -183,10 +182,10 @@ fn draw_scanning(state: &State) {
 
 fn draw_list(state: &State) {
     let theme = state.settings.theme;
-    let font = state.font.as_font();
+    let font = &state.font;
     firefly_ui::draw_bg_box(theme);
     let title = "connected peers";
-    firefly_ui::draw_title(title, false, &font, theme.accent);
+    firefly_ui::draw_title(title, false, font, theme.accent);
 
     let line_h = font.char_height() as i32 + 4;
     let mut peers_map = state.peers_map;
@@ -195,7 +194,7 @@ fn draw_list(state: &State) {
         peers_map >>= 1;
         let selected = state.cursor == 0 && i - 1 == state.peer;
         if selected {
-            draw_cursor(u32::from(i), theme, &font, state.input.pressed(), 0);
+            draw_cursor(u32::from(i), theme, font, state.input.pressed(), 0);
         }
 
         let mut point = Point::new(20, 12 + (i as i32 + 1) * line_h);
@@ -214,7 +213,7 @@ fn draw_list(state: &State) {
         } else {
             theme.primary
         };
-        draw_text(peer, &font, point, color);
+        draw_text(peer, font, point, color);
     }
 
     let y = 12 + 6 * line_h + 2;
@@ -225,32 +224,31 @@ fn draw_list(state: &State) {
     );
 
     if state.cursor == 1 {
-        draw_cursor(6, theme, &font, state.input.pressed(), 0);
+        draw_cursor(6, theme, font, state.input.pressed(), 0);
     }
     let point = Point::new(20, 12 + 7 * line_h);
-    draw_text("connect more peers", &font, point, theme.primary);
+    draw_text("connect more peers", font, point, theme.primary);
 
     if state.cursor == 2 {
-        draw_cursor(7, theme, &font, state.input.pressed(), 0);
+        draw_cursor(7, theme, font, state.input.pressed(), 0);
     }
     let point = Point::new(20, 12 + 8 * line_h);
-    draw_text("confirm", &font, point, theme.primary);
+    draw_text("confirm", font, point, theme.primary);
 
     if state.cursor == 3 {
-        draw_cursor(8, theme, &font, state.input.pressed(), 0);
+        draw_cursor(8, theme, font, state.input.pressed(), 0);
     }
     let point = Point::new(20, 12 + 9 * line_h);
-    draw_text("cancel", &font, point, theme.primary);
+    draw_text("cancel", font, point, theme.primary);
 }
 
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
-    let font = state.font.as_font();
     let title = &state.peers[usize::from(state.peer) + 1];
     let options = &["disconnect peer", "back to the list"];
     firefly_ui::draw_dialog(
         theme,
-        &font,
+        &state.font,
         title,
         options,
         state.cursor,
