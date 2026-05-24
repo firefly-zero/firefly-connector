@@ -5,7 +5,10 @@ extern crate alloc;
 mod state;
 mod translations;
 
-use alloc::{string::ToString, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use firefly_rust::*;
 use firefly_ui::{Input, Translate, draw_cursor};
 use state::*;
@@ -58,13 +61,26 @@ fn update_scanning(state: &mut State) {
         }
         names.push(name);
     }
-    if names.len() > 1 && names.len() > state.peers.len() {
-        state.cursor = 0;
-        state.peer = 0;
-        state.scene = Scene::List;
-        state.peers_map = (state.peers_map << 1) | 1;
+    if names != state.peers {
+        if peers_added(&state.peers, &names) {
+            state.cursor = 0;
+            state.peer = 0;
+            state.scene = Scene::List;
+            state.peers_map = (state.peers_map << 1) | 1;
+        }
+        if peers_removed(&state.peers, &names) {
+            // ...
+        }
+        state.peers = names;
     }
-    state.peers = names;
+}
+
+fn peers_added(old: &[String], new: &[String]) -> bool {
+    new.iter().any(|name| !old.contains(name))
+}
+
+fn peers_removed(old: &[String], new: &[String]) -> bool {
+    old.iter().any(|name| !new.contains(name))
 }
 
 fn update_list(state: &mut State) {

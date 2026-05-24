@@ -4,7 +4,7 @@ use firefly_rust::*;
 
 static mut STATE: MaybeUninit<State> = MaybeUninit::uninit();
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(PartialEq)]
 pub enum Scene {
     /// Searching for more peers.
     Scanning,
