@@ -3,11 +3,13 @@
 extern crate alloc;
 
 mod state;
+mod translations;
 
 use alloc::{string::ToString, vec::Vec};
 use firefly_rust::*;
-use firefly_ui::{Input, draw_cursor};
+use firefly_ui::{Input, Translate, draw_cursor};
 use state::*;
+use translations::*;
 
 #[link(wasm_import_module = "misc")]
 unsafe extern "C" {
@@ -151,12 +153,14 @@ extern "C" fn render() {
 
 fn draw_name(state: &State) {
     let theme = state.settings.theme;
+    let lang = state.settings.language;
     let font = &state.font;
+
     let Some(name) = state.peers.first() else {
         return;
     };
     let mut point = Point::new(5, i32::from(font.char_height()) - 1);
-    let prefix = "hello, ";
+    let prefix = Message::Hello.translate(lang);
     draw_text(prefix, font, point, theme.primary);
     point.x += font.line_width_ascii(prefix) as i32;
     draw_text(name, font, point, theme.accent);
@@ -164,12 +168,15 @@ fn draw_name(state: &State) {
 
 fn draw_scanning(state: &State) {
     let theme = state.settings.theme;
-    let title = "scanning...";
+    let lang = state.settings.language;
+
+    let title = Message::Scanning.translate(lang);
     let option = if state.peers_map == 0 {
-        "cancel"
+        Message::Cancel
     } else {
-        "stop"
+        Message::Stop
     };
+    let option = option.translate(lang);
     firefly_ui::draw_dialog(
         theme,
         &state.font,
@@ -183,8 +190,10 @@ fn draw_scanning(state: &State) {
 fn draw_list(state: &State) {
     let theme = state.settings.theme;
     let font = &state.font;
+    let lang = state.settings.language;
+
     firefly_ui::draw_bg_box(theme);
-    let title = "connected peers";
+    let title = Message::ConnectedPeers.translate(lang);
     firefly_ui::draw_title(title, false, font, theme.accent);
 
     let line_h = font.char_height() as i32 + 4;
@@ -223,23 +232,15 @@ fn draw_list(state: &State) {
         LineStyle::new(theme.primary, 1),
     );
 
-    if state.cursor == 1 {
-        draw_cursor(6, theme, font, state.input.pressed(), 0);
+    let msgs = &[Message::ConnectMorePeers, Message::Confirm, Message::Cancel];
+    for (msg, i) in msgs.iter().zip(1u8..) {
+        if state.cursor == i {
+            draw_cursor(5 + u32::from(i), theme, font, state.input.pressed(), 0);
+        }
+        let msg = msg.translate(lang);
+        let point = Point::new(20, 12 + i32::from(6 + i) * line_h);
+        draw_text(msg, font, point, theme.primary);
     }
-    let point = Point::new(20, 12 + 7 * line_h);
-    draw_text("connect more peers", font, point, theme.primary);
-
-    if state.cursor == 2 {
-        draw_cursor(7, theme, font, state.input.pressed(), 0);
-    }
-    let point = Point::new(20, 12 + 8 * line_h);
-    draw_text("confirm", font, point, theme.primary);
-
-    if state.cursor == 3 {
-        draw_cursor(8, theme, font, state.input.pressed(), 0);
-    }
-    let point = Point::new(20, 12 + 9 * line_h);
-    draw_text("cancel", font, point, theme.primary);
 }
 
 fn draw_peer_actions(state: &State) {
