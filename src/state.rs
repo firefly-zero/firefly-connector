@@ -12,6 +12,7 @@ pub enum Scene {
     List,
     /// Context menu for a peer.
     PeerActions,
+    Disconnected(String),
 }
 
 pub struct State {

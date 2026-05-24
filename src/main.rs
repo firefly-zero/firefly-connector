@@ -38,6 +38,7 @@ extern "C" fn update() {
         Scene::Scanning => update_scanning(state),
         Scene::List => update_list(state),
         Scene::PeerActions => update_peer_actions(state),
+        Scene::Disconnected(_) => update_disconnected(state),
     }
 }
 
@@ -69,13 +70,21 @@ fn update_scanning(state: &mut State) {
             state.peers_map = (state.peers_map << 1) | 1;
         }
         if peers_removed(&state.peers, &names) {
-            // ...
+            state.cursor = 0;
+            state.peer = 0;
+            state.scene = Scene::Disconnected("???".to_string());
         }
         state.peers = names;
     }
 }
 
 fn peers_added(old: &[String], new: &[String]) -> bool {
+    if old.is_empty() {
+        return false;
+    }
+    if new.len() > old.len() {
+        return true;
+    }
     new.iter().any(|name| !old.contains(name))
 }
 
@@ -154,15 +163,32 @@ fn update_peer_actions(state: &mut State) {
     }
 }
 
+fn update_disconnected(state: &mut State) {
+    if state.input.get() != Input::Select {
+        return;
+    }
+    state.peers_map = 0;
+    for _ in 0..state.peers.len() {
+        state.peers_map = (state.peers_map << 1) | 1;
+    }
+    state.peer = 0;
+    state.scene = if state.peers_map == 0 {
+        Scene::Scanning
+    } else {
+        Scene::List
+    };
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn render() {
     let state = get_state();
     let theme = state.settings.theme;
     firefly_ui::draw_bg_grid(theme);
-    match state.scene {
+    match &state.scene {
         Scene::Scanning => draw_scanning(state),
         Scene::List => draw_list(state),
         Scene::PeerActions => draw_peer_actions(state),
+        Scene::Disconnected(name) => draw_disconnected(state, name),
     }
     draw_name(state);
 }
@@ -284,6 +310,19 @@ fn draw_peer_actions(state: &State) {
         title,
         options,
         state.cursor,
+        state.input.pressed(),
+    );
+}
+
+fn draw_disconnected(state: &State, name: &str) {
+    let theme = state.settings.theme;
+    let prompt = alloc::format!("{name} disconnected");
+    firefly_ui::draw_dialog(
+        theme,
+        &state.font,
+        &prompt,
+        &["ok"],
+        0,
         state.input.pressed(),
     );
 }
