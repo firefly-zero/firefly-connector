@@ -53,15 +53,7 @@ fn update_scanning(state: &mut State) {
         state.scene = Scene::List;
     }
 
-    let peers = get_peers();
-    let mut names = Vec::new();
-    for peer in peers {
-        let mut name = get_name_buf(peer);
-        if name.is_empty() {
-            name = "<empty>".to_string();
-        }
-        names.push(name);
-    }
+    let names = load_names();
     if names != state.peers {
         if peers_added(&state.peers, &names) {
             state.cursor = 0;
@@ -73,9 +65,23 @@ fn update_scanning(state: &mut State) {
             state.cursor = 0;
             state.peer = 0;
             state.scene = Scene::Disconnected("???".to_string());
+            state.peers_map >>= state.peers.len().saturating_sub(names.len()).max(1);
         }
         state.peers = names;
     }
+}
+
+fn load_names() -> Vec<String> {
+    let peers = get_peers();
+    let mut names = Vec::new();
+    for peer in peers {
+        let mut name = get_name_buf(peer);
+        if name.is_empty() {
+            name = "<empty>".to_string();
+        }
+        names.push(name);
+    }
+    names
 }
 
 fn peers_added(old: &[String], new: &[String]) -> bool {
@@ -89,10 +95,27 @@ fn peers_added(old: &[String], new: &[String]) -> bool {
 }
 
 fn peers_removed(old: &[String], new: &[String]) -> bool {
+    if new.len() < old.len() {
+        return true;
+    }
     old.iter().any(|name| !new.contains(name))
 }
 
 fn update_list(state: &mut State) {
+    let names = load_names();
+    if names != state.peers {
+        if peers_removed(&state.peers, &names) {
+            state.cursor = 0;
+            state.peer = 0;
+            state.scene = Scene::Disconnected("???".to_string());
+        }
+        state.peers = names;
+        return;
+    }
+    if state.peers_map == 0 {
+        state.scene = Scene::Scanning;
+    };
+
     match state.input.get() {
         Input::Up => {
             if state.cursor > 0 {
@@ -145,15 +168,9 @@ fn update_peer_actions(state: &mut State) {
             if state.cursor == 0 {
                 state.peers_map &= !(1u32 << state.peer);
                 state.peer = 0;
-                state.scene = if state.peers_map == 0 {
-                    Scene::Scanning
-                } else {
-                    Scene::List
-                };
-            } else {
-                state.scene = Scene::List;
             }
             state.cursor = 0;
+            state.scene = Scene::List;
         }
         Input::Back => {
             state.cursor = 0;
@@ -167,16 +184,16 @@ fn update_disconnected(state: &mut State) {
     if state.input.get() != Input::Select {
         return;
     }
+    reset_peers_map(state);
+    state.scene = Scene::List;
+}
+
+fn reset_peers_map(state: &mut State) {
     state.peers_map = 0;
-    for _ in 0..state.peers.len() {
+    for _ in 0..state.peers.len() - 1 {
         state.peers_map = (state.peers_map << 1) | 1;
     }
     state.peer = 0;
-    state.scene = if state.peers_map == 0 {
-        Scene::Scanning
-    } else {
-        Scene::List
-    };
 }
 
 #[unsafe(no_mangle)]
