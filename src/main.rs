@@ -181,6 +181,11 @@ fn update_list(state: &mut State) {
         transition(state, Scene::Disconnected(name));
     }
 
+    let n_visible = state
+        .peers
+        .iter()
+        .filter(|peer| peer.state != PeerState::Hidden)
+        .count();
     match state.input.get() {
         Input::Up => {
             if state.cursor > 0 {
@@ -190,7 +195,7 @@ fn update_list(state: &mut State) {
             }
         }
         Input::Down => {
-            if usize::from(state.peer) < state.peers.len() - 1 {
+            if usize::from(state.peer) < n_visible - 1 {
                 state.peer += 1;
             } else if state.cursor < 3 {
                 state.cursor += 1;
@@ -201,7 +206,7 @@ fn update_list(state: &mut State) {
             state.cursor = 0;
         }
         Input::Right => {
-            state.peer = (state.peers.len() - 1) as u8;
+            state.peer = (n_visible - 1) as u8;
             state.cursor = 3;
         }
         Input::Select => {
@@ -330,6 +335,9 @@ fn draw_list(state: &State) {
 
     let line_h = font.char_height() as i32 + 4;
     for (peer, i) in state.peers.iter().zip(1u8..) {
+        if peer.state == PeerState::Hidden {
+            continue;
+        }
         let selected = state.cursor == 0 && i - 1 == state.peer;
         if selected {
             draw_cursor(u32::from(i), theme, font, state.input.pressed(), 0);
