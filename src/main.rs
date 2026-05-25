@@ -16,9 +16,17 @@ use translations::*;
 
 #[link(wasm_import_module = "misc")]
 unsafe extern "C" {
+    /// Host function for setting the map of the peers that should stay connected.
+    ///
+    /// Must be called before exit.
+    ///
+    /// If zero is passed, the multipalyer is cancelled.
     pub(crate) unsafe fn set_peers(peer_map: i32);
 }
 
+/// Runtime callback executed before the app exits.
+///
+/// Guaranteed to be executed unless the app panics.
 #[unsafe(no_mangle)]
 extern "C" fn before_exit() {
     let state = get_state();
@@ -49,7 +57,16 @@ extern "C" fn update() {
     }
 }
 
+/// The update loop for [`Scene::Scanning`].
 fn update_scanning(state: &mut State) {
+    for peer in &mut state.peers {
+        if peer.state == PeerState::Hidden {
+            peer.state = PeerState::Connected;
+            transition(state, Scene::List);
+            return;
+        }
+    }
+
     if matches!(state.input.get(), Input::Back | Input::Select) {
         if !has_connected(state) {
             quit();
@@ -75,6 +92,7 @@ fn update_scanning(state: &mut State) {
     }
 }
 
+/// Transition the app from one state into another.
 fn transition(state: &mut State, scene: Scene) {
     if state.scene == scene {
         return;
@@ -91,6 +109,7 @@ fn transition(state: &mut State, scene: Scene) {
     state.scene = scene;
 }
 
+/// Check if there are currently connected and visible peers.
 fn has_connected(state: &State) -> bool {
     state
         .peers
@@ -134,6 +153,7 @@ fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerStat
     updates
 }
 
+/// List names of the currently connected peers.
 fn load_names() -> Vec<String> {
     let peers = get_peers();
     let mut names = Vec::new();
@@ -147,6 +167,7 @@ fn load_names() -> Vec<String> {
     names
 }
 
+/// The update loop for [`Scene::List`].
 fn update_list(state: &mut State) {
     let mut names = load_names();
     names.remove(0);
@@ -201,6 +222,7 @@ fn update_list(state: &mut State) {
     }
 }
 
+/// The update loop for [`Scene::PeerActions`].
 fn update_peer_actions(state: &mut State) {
     match state.input.get() {
         Input::Up | Input::Left => state.cursor = 0,
@@ -215,14 +237,12 @@ fn update_peer_actions(state: &mut State) {
             }
             transition(state, Scene::List);
         }
-        Input::Back => {
-            state.cursor = 0;
-            transition(state, Scene::List);
-        }
+        Input::Back => transition(state, Scene::List),
         Input::None => {}
     }
 }
 
+/// The update loop for [`Scene::Disconnected`].
 fn update_disconnected(state: &mut State) {
     if state.input.get() == Input::Select {
         transition(state, Scene::List);
