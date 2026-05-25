@@ -52,9 +52,7 @@ fn update_scanning(state: &mut State) {
             quit();
             return;
         }
-        state.cursor = 0;
-        state.peer = 0;
-        state.scene = Scene::List;
+        transition(state, Scene::List);
     }
 
     let mut names = load_names();
@@ -67,11 +65,27 @@ fn update_scanning(state: &mut State) {
     if updates.n_joined != 0 {
         state.cursor = 0;
         state.peer = 0;
-        state.scene = Scene::List;
+        transition(state, Scene::List);
     }
-    if updates.n_left != 0 {
-        state.scene = Scene::Disconnected("???".to_string());
+    if let Some(name) = updates.left {
+        transition(state, Scene::Disconnected(name));
     }
+}
+
+fn transition(state: &mut State, scene: Scene) {
+    if state.scene == scene {
+        return;
+    }
+    if scene == Scene::List {
+        if !has_connected(state) {
+            transition(state, Scene::Scanning);
+        }
+        if state.scene != Scene::PeerActions {
+            state.cursor = 0;
+            state.peer = 0;
+        }
+    }
+    state.scene = scene;
 }
 
 fn has_connected(state: &State) -> bool {
@@ -82,13 +96,13 @@ fn has_connected(state: &State) -> bool {
 }
 
 struct PeerUpdates {
-    n_left: u8,
+    left: Option<String>,
     n_joined: u8,
 }
 
 fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerState) -> PeerUpdates {
     let mut updates = PeerUpdates {
-        n_left: 0,
+        left: None,
         n_joined: 0,
     };
     for peer in peers.iter_mut() {
@@ -97,7 +111,7 @@ fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerStat
         }
         if !names.contains(&peer.name) {
             peer.state = PeerState::Left;
-            updates.n_left += 1;
+            updates.left = Some(peer.name.clone());
         }
     }
     for name in names {
@@ -129,8 +143,8 @@ fn update_list(state: &mut State) {
     let mut names = load_names();
     names.remove(0);
     let updates = sync_peers(&mut state.peers, names, PeerState::Hidden);
-    if updates.n_left != 0 {
-        state.scene = Scene::Disconnected("???".to_string());
+    if let Some(name) = updates.left {
+        transition(state, Scene::Disconnected(name));
     }
 
     match state.input.get() {
@@ -159,9 +173,9 @@ fn update_list(state: &mut State) {
         Input::Select => {
             match state.cursor {
                 // select a peer
-                0 => state.scene = Scene::PeerActions,
+                0 => transition(state, Scene::PeerActions),
                 // connect more
-                1 => state.scene = Scene::Scanning,
+                1 => transition(state, Scene::Scanning),
                 // confirm
                 2 => quit(),
                 // cancel
@@ -191,24 +205,20 @@ fn update_peer_actions(state: &mut State) {
                 }
                 state.peer = 0;
             }
-            state.cursor = 0;
-            state.scene = Scene::List;
+            transition(state, Scene::List);
         }
         Input::Back => {
             state.cursor = 0;
-            state.scene = Scene::List;
+            transition(state, Scene::List);
         }
         Input::None => {}
     }
 }
 
 fn update_disconnected(state: &mut State) {
-    if state.input.get() != Input::Select {
-        return;
+    if state.input.get() == Input::Select {
+        transition(state, Scene::List);
     }
-    state.scene = Scene::List;
-    state.peer = 0;
-    state.cursor = 0;
 }
 
 #[unsafe(no_mangle)]
