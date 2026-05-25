@@ -30,6 +30,7 @@ pub enum PeerState {
 pub struct PeerInfo {
     pub name: String,
     pub state: PeerState,
+    pub matched: bool,
 }
 
 pub struct State {

@@ -128,26 +128,31 @@ fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerStat
         n_joined: 0,
     };
     for peer in peers.iter_mut() {
-        if peer.state != PeerState::Connected {
-            continue;
-        }
-        if !names.contains(&peer.name) {
-            peer.state = PeerState::Left;
-            updates.left = Some(peer.name.clone());
-        }
+        peer.matched = false;
     }
     for name in names {
-        let maybe_peer = peers.iter_mut().find(|peer| peer.name == name);
+        let maybe_peer = peers
+            .iter_mut()
+            .find(|peer| !peer.matched && peer.name == name);
         if let Some(peer) = maybe_peer {
+            peer.matched = true;
             if peer.state == PeerState::Left {
                 peer.state = PeerState::Connected;
             }
         } else {
-            peers.push(PeerInfo {
+            let peer = PeerInfo {
                 name,
                 state: new_state,
-            });
+                matched: true,
+            };
+            peers.push(peer);
             updates.n_joined += 1;
+        }
+    }
+    for peer in peers.iter_mut() {
+        if !peer.matched && peer.state == PeerState::Connected {
+            updates.left = Some(peer.name.clone());
+            peer.state = PeerState::Left;
         }
     }
     updates
