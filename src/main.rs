@@ -22,7 +22,11 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 extern "C" fn before_exit() {
     let state = get_state();
-    unsafe { set_peers(state.peers_map as i32) };
+    let mut peer_map = 0;
+    for peer in state.peers.iter().rev() {
+        peer_map = (peer_map << 1) | u8::from(peer.state == PeerState::Connected);
+    }
+    unsafe { set_peers(peer_map as i32) };
 }
 
 #[unsafe(no_mangle)]
@@ -44,7 +48,7 @@ extern "C" fn update() {
 
 fn update_scanning(state: &mut State) {
     if matches!(state.input.get(), Input::Back | Input::Select) {
-        if state.peers_map == 0 {
+        if !has_connected(state) {
             quit();
             return;
         }
@@ -53,22 +57,59 @@ fn update_scanning(state: &mut State) {
         state.scene = Scene::List;
     }
 
-    let names = load_names();
-    if names != state.peers {
-        if peers_added(&state.peers, &names) {
-            state.cursor = 0;
-            state.peer = 0;
-            state.scene = Scene::List;
-            state.peers_map = (state.peers_map << 1) | 1;
-        }
-        if peers_removed(&state.peers, &names) {
-            state.cursor = 0;
-            state.peer = 0;
-            state.scene = Scene::Disconnected("???".to_string());
-            state.peers_map >>= state.peers.len().saturating_sub(names.len()).max(1);
-        }
-        state.peers = names;
+    let mut names = load_names();
+    let my_name = names.remove(0);
+    if state.my_name.is_empty() {
+        state.my_name = my_name;
     }
+
+    let updates = sync_peers(&mut state.peers, names, PeerState::Connected);
+    if updates.n_joined != 0 {
+        state.cursor = 0;
+        state.peer = 0;
+        state.scene = Scene::List;
+    }
+    if updates.n_left != 0 {
+        state.scene = Scene::Disconnected("???".to_string());
+    }
+}
+
+fn has_connected(state: &State) -> bool {
+    state
+        .peers
+        .iter()
+        .any(|peer| peer.state == PeerState::Connected)
+}
+
+struct PeerUpdates {
+    n_left: u8,
+    n_joined: u8,
+}
+
+fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerState) -> PeerUpdates {
+    let mut updates = PeerUpdates {
+        n_left: 0,
+        n_joined: 0,
+    };
+    for peer in peers.iter_mut() {
+        if peer.state != PeerState::Connected {
+            continue;
+        }
+        if !names.contains(&peer.name) {
+            peer.state = PeerState::Left;
+            updates.n_left += 1;
+        }
+    }
+    for name in names {
+        if peers.iter().find(|peer| peer.name == name).is_none() {
+            peers.push(PeerInfo {
+                name,
+                state: new_state,
+            });
+            updates.n_joined += 1;
+        }
+    }
+    updates
 }
 
 fn load_names() -> Vec<String> {
@@ -84,37 +125,13 @@ fn load_names() -> Vec<String> {
     names
 }
 
-fn peers_added(old: &[String], new: &[String]) -> bool {
-    if old.is_empty() {
-        return false;
-    }
-    if new.len() > old.len() {
-        return true;
-    }
-    new.iter().any(|name| !old.contains(name))
-}
-
-fn peers_removed(old: &[String], new: &[String]) -> bool {
-    if new.len() < old.len() {
-        return true;
-    }
-    old.iter().any(|name| !new.contains(name))
-}
-
 fn update_list(state: &mut State) {
-    let names = load_names();
-    if names != state.peers {
-        if peers_removed(&state.peers, &names) {
-            state.cursor = 0;
-            state.peer = 0;
-            state.scene = Scene::Disconnected("???".to_string());
-        }
-        state.peers = names;
-        return;
+    let mut names = load_names();
+    names.remove(0);
+    let updates = sync_peers(&mut state.peers, names, PeerState::Hidden);
+    if updates.n_left != 0 {
+        state.scene = Scene::Disconnected("???".to_string());
     }
-    if state.peers_map == 0 {
-        state.scene = Scene::Scanning;
-    };
 
     match state.input.get() {
         Input::Up => {
@@ -125,7 +142,7 @@ fn update_list(state: &mut State) {
             }
         }
         Input::Down => {
-            if usize::from(state.peer) < state.peers.len() - 2 {
+            if usize::from(state.peer) < state.peers.len() - 1 {
                 state.peer += 1;
             } else if state.cursor < 3 {
                 state.cursor += 1;
@@ -136,7 +153,7 @@ fn update_list(state: &mut State) {
             state.cursor = 0;
         }
         Input::Right => {
-            state.peer = (state.peers.len() - 2) as u8;
+            state.peer = (state.peers.len() - 1) as u8;
             state.cursor = 3;
         }
         Input::Select => {
@@ -149,7 +166,9 @@ fn update_list(state: &mut State) {
                 2 => quit(),
                 // cancel
                 3 => {
-                    state.peers_map = 0;
+                    for peer in &mut state.peers {
+                        peer.state = PeerState::Removed;
+                    }
                     quit();
                 }
                 _ => {}
@@ -166,7 +185,10 @@ fn update_peer_actions(state: &mut State) {
         Input::Down | Input::Right => state.cursor = 1,
         Input::Select => {
             if state.cursor == 0 {
-                state.peers_map &= !(1u32 << state.peer);
+                let idx = usize::from(state.peer);
+                if let Some(peer) = state.peers.get_mut(idx) {
+                    peer.state = PeerState::Removed;
+                }
                 state.peer = 0;
             }
             state.cursor = 0;
@@ -184,16 +206,9 @@ fn update_disconnected(state: &mut State) {
     if state.input.get() != Input::Select {
         return;
     }
-    reset_peers_map(state);
     state.scene = Scene::List;
-}
-
-fn reset_peers_map(state: &mut State) {
-    state.peers_map = 0;
-    for _ in 0..state.peers.len() - 1 {
-        state.peers_map = (state.peers_map << 1) | 1;
-    }
     state.peer = 0;
+    state.cursor = 0;
 }
 
 #[unsafe(no_mangle)]
@@ -215,15 +230,15 @@ fn draw_name(state: &State) {
     let lang = state.settings.language;
     let font = &state.font;
 
-    let Some(name) = state.peers.first() else {
+    if state.my_name.is_empty() {
         return;
-    };
+    }
     let prefix = Message::Hello.translate(lang);
 
     draw_rounded_rect(
         Point::new(-4, -4),
         Size::new(
-            (font.line_width_ascii(prefix) + font.line_width_ascii(name)) as i32 + 13,
+            (font.line_width_ascii(prefix) + font.line_width_ascii(&state.my_name)) as i32 + 13,
             i32::from(font.char_height()) + 10,
         ),
         Size::new(4, 4),
@@ -237,7 +252,7 @@ fn draw_name(state: &State) {
     let mut point = Point::new(5, i32::from(font.char_height()) - 1);
     draw_text(prefix, font, point, theme.primary);
     point.x += font.line_width_ascii(prefix) as i32;
-    draw_text(name, font, point, theme.accent);
+    draw_text(&state.my_name, font, point, theme.accent);
 }
 
 fn draw_scanning(state: &State) {
@@ -245,10 +260,10 @@ fn draw_scanning(state: &State) {
     let lang = state.settings.language;
 
     let title = Message::Scanning.translate(lang);
-    let option = if state.peers_map == 0 {
-        Message::Cancel
-    } else {
+    let option = if has_connected(state) {
         Message::Stop
+    } else {
+        Message::Cancel
     };
     let option = option.translate(lang);
     firefly_ui::draw_dialog(
@@ -271,10 +286,7 @@ fn draw_list(state: &State) {
     firefly_ui::draw_title(title, false, font, theme.accent);
 
     let line_h = font.char_height() as i32 + 4;
-    let mut peers_map = state.peers_map;
-    for (peer, i) in state.peers.iter().skip(1).zip(1u8..) {
-        let removed = peers_map & 1 == 0;
-        peers_map >>= 1;
+    for (peer, i) in state.peers.iter().zip(1u8..) {
         let selected = state.cursor == 0 && i - 1 == state.peer;
         if selected {
             draw_cursor(u32::from(i), theme, font, state.input.pressed(), 0);
@@ -285,18 +297,18 @@ fn draw_list(state: &State) {
             point.x += 1;
             point.y += 1;
         }
-        let color = if removed {
-            let w = font.line_width_ascii(peer) as i32;
+        let color = if peer.state == PeerState::Connected {
+            theme.primary
+        } else {
+            let w = font.line_width_ascii(&peer.name) as i32;
             draw_line(
                 Point::new(point.x, point.y - 2),
                 Point::new(point.x + w, point.y - 2),
                 LineStyle::new(theme.secondary, 1),
             );
             theme.secondary
-        } else {
-            theme.primary
         };
-        draw_text(peer, font, point, color);
+        draw_text(&peer.name, font, point, color);
     }
 
     let y = 12 + 6 * line_h + 2;
@@ -319,12 +331,12 @@ fn draw_list(state: &State) {
 
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
-    let title = &state.peers[usize::from(state.peer) + 1];
+    let peer = &state.peers[usize::from(state.peer)];
     let options = &["disconnect peer", "back to the list"];
     firefly_ui::draw_dialog(
         theme,
         &state.font,
-        title,
+        &peer.name,
         options,
         state.cursor,
         state.input.pressed(),

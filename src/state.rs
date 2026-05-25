@@ -15,6 +15,23 @@ pub enum Scene {
     Disconnected(String),
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum PeerState {
+    /// The peer was connected but then disconnected out of their own volition.
+    Left,
+    /// The peer was connected but then was removed by the user of this device.
+    Removed,
+    /// The peer is connected but hasn't been show to the user yet.
+    Hidden,
+    /// The peer is connected and the user saw it in the list.
+    Connected,
+}
+
+pub struct PeerInfo {
+    pub name: String,
+    pub state: PeerState,
+}
+
 pub struct State {
     pub font: FontBuf,
     pub settings: Settings,
@@ -23,9 +40,8 @@ pub struct State {
     /// The currently selected peer.
     pub peer: u8,
     pub cursor: u8,
-    /// The list of names of all connected peers.
-    pub peers: Vec<String>,
-    pub peers_map: u32,
+    pub my_name: String,
+    pub peers: Vec<PeerInfo>,
 }
 
 pub fn get_state() -> &'static mut State {
@@ -45,8 +61,8 @@ pub fn load_state() {
         scene: Scene::Scanning,
         peer: 0,
         cursor: 0,
+        my_name: String::new(),
         peers: Vec::new(),
-        peers_map: 0,
     };
     #[allow(static_mut_refs)]
     unsafe {
