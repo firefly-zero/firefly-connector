@@ -32,6 +32,14 @@ extern "C" fn before_exit() {
     let state = get_state();
     let mut peer_map = 0;
     for peer in state.peers.iter().rev() {
+        // * `Left` peers are not present in the list of peers on the host
+        //   and so should be ignore in the peers map.
+        // * `Removed` peers were explicitly removed
+        //   and so should be 0 in the peers map.
+        // * `Hidden` peers were not reviewed by the user
+        //   and so should be 0 in the peers map.
+        // * `Connected` peers are reviewed by the user
+        //   and so they are the only ones that are 1 in the peers map.
         if peer.state == PeerState::Left {
             continue;
         }
@@ -122,6 +130,10 @@ struct PeerUpdates {
     n_joined: u8,
 }
 
+/// Update the list of peers in the app to match the peer names list from the host.
+///
+/// New names are added as new peers (with `new_state`).
+/// Removed names are marked as left peers.
 fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerState) -> PeerUpdates {
     let mut updates = PeerUpdates {
         left: None,
@@ -273,6 +285,7 @@ extern "C" fn render() {
     draw_name(state);
 }
 
+/// Render the name of the current device in the top-left corner.
 fn draw_name(state: &State) {
     let theme = state.settings.theme;
     let lang = state.settings.language;
@@ -303,6 +316,9 @@ fn draw_name(state: &State) {
     draw_text(&state.my_name, font, point, theme.accent);
 }
 
+/// Render loop for [`Scene::Scanning`].
+///
+/// Render the "scanning..." message.
 fn draw_scanning(state: &State) {
     let theme = state.settings.theme;
     let lang = state.settings.language;
@@ -324,6 +340,9 @@ fn draw_scanning(state: &State) {
     );
 }
 
+/// Render loop for [`Scene::List`].
+///
+/// Shows the list of peers and connection actions.
 fn draw_list(state: &State) {
     let theme = state.settings.theme;
     let font = &state.font;
@@ -380,6 +399,9 @@ fn draw_list(state: &State) {
     }
 }
 
+/// Render loop for [`Scene::PeerActions`].
+///
+/// Show the context menu for the currently selected peer.
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
     let peer = &state.peers[usize::from(state.peer)];
@@ -394,6 +416,9 @@ fn draw_peer_actions(state: &State) {
     );
 }
 
+/// Render loop for [`Scene::Disconnected`].
+///
+/// Shows an alert saying that the given peer disconnected (on their own).
 fn draw_disconnected(state: &State, name: &str) {
     let theme = state.settings.theme;
     let prompt = alloc::format!("{name} disconnected");
