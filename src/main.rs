@@ -24,6 +24,9 @@ extern "C" fn before_exit() {
     let state = get_state();
     let mut peer_map = 0;
     for peer in state.peers.iter().rev() {
+        if peer.state == PeerState::Left {
+            continue;
+        }
         peer_map = (peer_map << 1) | u8::from(peer.state == PeerState::Connected);
     }
     unsafe { set_peers(peer_map as i32) };
@@ -115,7 +118,12 @@ fn sync_peers(peers: &mut Vec<PeerInfo>, names: Vec<String>, new_state: PeerStat
         }
     }
     for name in names {
-        if peers.iter().find(|peer| peer.name == name).is_none() {
+        let maybe_peer = peers.iter_mut().find(|peer| peer.name == name);
+        if let Some(peer) = maybe_peer {
+            if peer.state == PeerState::Left {
+                peer.state = PeerState::Connected;
+            }
+        } else {
             peers.push(PeerInfo {
                 name,
                 state: new_state,
