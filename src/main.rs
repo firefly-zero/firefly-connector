@@ -224,7 +224,12 @@ fn update_list(state: &mut State) {
         Input::Select => {
             match state.cursor {
                 // select a peer
-                0 => transition(state, Scene::PeerActions),
+                0 => {
+                    let peer = &state.peers[usize::from(state.peer)];
+                    if peer.state != PeerState::Left {
+                        transition(state, Scene::PeerActions);
+                    }
+                }
                 // connect more
                 1 => transition(state, Scene::Scanning),
                 // confirm
@@ -253,7 +258,11 @@ fn update_peer_actions(state: &mut State) {
             if state.cursor == 0 {
                 let idx = usize::from(state.peer);
                 if let Some(peer) = state.peers.get_mut(idx) {
-                    peer.state = PeerState::Removed;
+                    if peer.state == PeerState::Removed {
+                        peer.state = PeerState::Connected
+                    } else {
+                        peer.state = PeerState::Removed;
+                    }
                 }
                 state.peer = 0;
             }
@@ -405,7 +414,12 @@ fn draw_list(state: &State) {
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
     let peer = &state.peers[usize::from(state.peer)];
-    let options = &["disconnect peer", "back to the list"];
+    let opt1 = if peer.state == PeerState::Removed {
+        "connect peer"
+    } else {
+        "disconnect peer"
+    };
+    let options = &[opt1, "back to the list"];
     firefly_ui::draw_dialog(
         theme,
         &state.font,
