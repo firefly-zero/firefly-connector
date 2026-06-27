@@ -110,7 +110,7 @@ fn transition(state: &mut State, scene: Scene) {
             transition(state, Scene::Scanning);
         }
         if state.scene != Scene::PeerActions {
-            state.cursor = 0;
+            state.cursor = 1;
             state.peer = 0;
         }
     }
