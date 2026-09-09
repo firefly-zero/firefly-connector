@@ -12,6 +12,13 @@ pub enum Scene {
     List,
     /// Context menu for a peer.
     PeerActions,
+    /// User is ready to start, waiting for other peers.
+    ///
+    /// The screen acts as a "barrier" to prevent users
+    /// starting a game while other peers are still
+    /// establishing the connection.
+    Ready,
+    /// A warning about a disconnected peer.
     Disconnected(String),
 }
 

@@ -21,7 +21,9 @@ unsafe extern "C" {
     /// Must be called before exit.
     ///
     /// If zero is passed, the multipalyer is cancelled.
-    pub(crate) unsafe fn set_peers(peer_map: i32);
+    pub(crate) unsafe fn set_peers(peer_map: u32);
+    pub(crate) unsafe fn set_conn_ready(peer_map: u32) -> u32;
+    pub(crate) unsafe fn get_conn_ready_map() -> u32;
 }
 
 /// Runtime callback executed before the app exits.
@@ -30,8 +32,13 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 extern "C" fn before_exit() {
     let state = get_state();
-    let mut peer_map = 0;
-    for peer in state.peers.iter().rev() {
+    let peer_map = get_peer_map(&state.peers);
+    unsafe { set_peers(peer_map) };
+}
+
+fn get_peer_map(peers: &[PeerInfo]) -> u32 {
+    let mut peer_map: u32 = 0;
+    for peer in peers.iter().rev() {
         // * `Left` peers are not present in the list of peers on the host
         //   and so should be ignore in the peers map.
         // * `Removed` peers were explicitly removed
@@ -43,9 +50,9 @@ extern "C" fn before_exit() {
         if peer.state == PeerState::Left {
             continue;
         }
-        peer_map = (peer_map << 1) | u8::from(peer.state == PeerState::Connected);
+        peer_map = (peer_map << 1) | u32::from(peer.state == PeerState::Connected);
     }
-    unsafe { set_peers(peer_map as i32) };
+    peer_map
 }
 
 #[unsafe(no_mangle)]
@@ -61,6 +68,7 @@ extern "C" fn update() {
         Scene::Scanning => update_scanning(state),
         Scene::List => update_list(state),
         Scene::PeerActions => update_peer_actions(state),
+        Scene::Ready => update_ready(state),
         Scene::Disconnected(_) => update_disconnected(state),
     }
 }
@@ -231,9 +239,17 @@ fn update_list(state: &mut State) {
                     }
                 }
                 // connect more
-                1 => transition(state, Scene::Scanning),
+                1 => {
+                    transition(state, Scene::Scanning);
+                }
                 // confirm
-                2 => quit(),
+                2 => {
+                    let peer_map = get_peer_map(&state.peers);
+                    let code = unsafe { set_conn_ready(peer_map) };
+                    if code == 1 {
+                        transition(state, Scene::Ready);
+                    }
+                }
                 // cancel
                 3 => {
                     for peer in &mut state.peers {
@@ -273,6 +289,28 @@ fn update_peer_actions(state: &mut State) {
     }
 }
 
+/// The update loop for [`Scene::Ready`].
+fn update_ready(state: &mut State) {
+    let peer_map = get_peer_map(&state.peers);
+    if peer_map == 0 {
+        transition(state, Scene::List);
+        return;
+    }
+    let ready_map = unsafe { get_conn_ready_map() };
+    if ready_map == peer_map {
+        quit();
+        return;
+    }
+
+    // cancel
+    if state.input.get() == Input::Select {
+        for peer in &mut state.peers {
+            peer.state = PeerState::Removed;
+        }
+        quit();
+    }
+}
+
 /// The update loop for [`Scene::Disconnected`].
 fn update_disconnected(state: &mut State) {
     if state.input.get() == Input::Select {
@@ -289,6 +327,7 @@ extern "C" fn render() {
         Scene::Scanning => draw_scanning(state),
         Scene::List => draw_list(state),
         Scene::PeerActions => draw_peer_actions(state),
+        Scene::Ready => draw_ready(state),
         Scene::Disconnected(name) => draw_disconnected(state, name),
     }
     draw_name(state);
@@ -426,6 +465,21 @@ fn draw_peer_actions(state: &State) {
         &peer.name,
         options,
         state.cursor,
+        state.input.pressed(),
+    );
+}
+
+/// Render loop for [`Scene::Ready`].
+fn draw_ready(state: &State) {
+    let theme = state.settings.theme;
+    let prompt = "waiting for other peers...";
+    let option = Message::Cancel.translate(state.settings.language);
+    firefly_ui::draw_dialog(
+        theme,
+        &state.font,
+        prompt,
+        &[option],
+        0,
         state.input.pressed(),
     );
 }
