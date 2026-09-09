@@ -252,7 +252,7 @@ fn update_list(state: &mut State) {
                 2 => {
                     let peer_map = get_peer_map(&state.peers);
                     let code = unsafe { set_conn_ready(peer_map) };
-                    if code == 1 {
+                    if code == 0 {
                         transition(state, Scene::Ready);
                     }
                 }
