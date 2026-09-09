@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "allocator-api2"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c880a97d28a3681c0267bd29cff89621202715b065127cd445fa0f0fe0aa2880"
+
+[[package]]
 name = "firefly-connector"
 version = "0.4.0"
 dependencies = [
@@ -12,18 +18,18 @@ dependencies = [
 
 [[package]]
 name = "firefly-rust"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5e37e38fe528ee0750c7f52c3519b96272e20fe4b1f48f88edbdc56fa2c353a"
+checksum = "b6d0df87ee04b111ad0bfeb372a746d1af5acd823a920c428acd4953363b4ada"
 dependencies = [
  "talc",
 ]
 
 [[package]]
 name = "firefly-ui"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d06b8b1133feb70fec2339cab0e80809a99a928090b489576417d767c0b3f05a"
+checksum = "68a42cd53518b3cd58656c9aa52ffddbf9e32b0cff61a83ea27600d955dd2365"
 dependencies = [
  "firefly-rust",
 ]
@@ -45,9 +51,10 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "talc"
-version = "4.4.3"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3ae828aa394de34c7de08f522d1b86bd1c182c668d27da69caadda00590f26d"
+checksum = "49661c532dfd6e4f570ef10a45cb92f6f4fce5a28245558ae48307b57b40a5b4"
 dependencies = [
+ "allocator-api2",
  "lock_api",
 ]
