@@ -251,6 +251,10 @@ fn update_list(state: &mut State) {
                 // confirm
                 2 => {
                     let peer_map = get_peer_map(&state.peers);
+                    if peer_map == 0 {
+                        quit();
+                        return;
+                    }
                     let code = unsafe { set_conn_ready(peer_map) };
                     // TODO: handle error codes
                     if code == 0 {
@@ -289,7 +293,12 @@ fn update_peer_actions(state: &mut State) {
                 }
                 state.peer = 0;
             }
-            transition(state, Scene::List);
+            let next_scene = if has_connected(state) {
+                Scene::List
+            } else {
+                Scene::Scanning
+            };
+            transition(state, next_scene)
         }
         Input::Back => transition(state, Scene::List),
         Input::None => {}
@@ -300,6 +309,7 @@ fn update_peer_actions(state: &mut State) {
 fn update_ready(state: &mut State) {
     let peer_map = get_peer_map(&state.peers);
     if peer_map == 0 {
+        // Should be unreachable.
         transition(state, Scene::List);
         return;
     }
@@ -309,7 +319,7 @@ fn update_ready(state: &mut State) {
         return;
     }
 
-    // cancel
+    // Handle the "cancel" button.
     if state.input.get() == Input::Select {
         for peer in &mut state.peers {
             peer.state = PeerState::Removed;

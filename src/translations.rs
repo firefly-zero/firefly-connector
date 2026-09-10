@@ -1,18 +1,31 @@
 pub enum Message {
+    /// Message: "hello, "
     Hello,
+    /// Message: "scanning..."
     Scanning,
+    /// Message: "connected peers"
     ConnectedPeers,
+    /// Message: "waiting for others..."
     WaitingForOthers,
+    /// Message: "disconnected"
     Disconnected,
 
+    /// Button: "connect more peers"
     ConnectMorePeers,
+    /// Button: "connect peer"
     ConnectPeer,
+    /// Button: "disconnect peer"
     DisconnectPeer,
+    /// Button: "back to the list"
     BackToTheList,
 
+    /// Button: "ok"
     Ok,
+    /// Button: "confirm"
     Confirm,
+    /// Button: "cancel"
     Cancel,
+    /// Button: "stop"
     Stop,
 }
 
