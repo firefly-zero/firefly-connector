@@ -252,6 +252,7 @@ fn update_list(state: &mut State) {
                 2 => {
                     let peer_map = get_peer_map(&state.peers);
                     let code = unsafe { set_conn_ready(peer_map) };
+                    // TODO: handle error codes
                     if code == 0 {
                         transition(state, Scene::Ready);
                     }
@@ -406,6 +407,7 @@ fn draw_list(state: &State) {
     let title = Message::ConnectedPeers.translate(lang);
     firefly_ui::draw_title(title, false, font, theme.accent);
 
+    // List of peers.
     let line_h = font.char_height() as i32 + 4;
     for (peer, i) in state.peers.iter().zip(1u8..) {
         if peer.state == PeerState::Hidden {
@@ -435,6 +437,7 @@ fn draw_list(state: &State) {
         draw_text(&peer.name, font, point, color);
     }
 
+    // Horizontal line separating buttons from peers list.
     let y = 12 + 6 * line_h + 2;
     draw_line(
         Point::new(12, y),
@@ -442,6 +445,7 @@ fn draw_list(state: &State) {
         LineStyle::new(theme.primary, 1),
     );
 
+    // Action buttons at the bottom.
     let msgs = &[Message::ConnectMorePeers, Message::Confirm, Message::Cancel];
     for (msg, i) in msgs.iter().zip(1u8..) {
         if state.cursor == i {
@@ -458,18 +462,20 @@ fn draw_list(state: &State) {
 /// Show the context menu for the currently selected peer.
 fn draw_peer_actions(state: &State) {
     let theme = state.settings.theme;
+    let lang = state.settings.language;
     let peer = &state.peers[usize::from(state.peer)];
     let opt1 = if peer.state == PeerState::Removed {
-        "connect peer"
+        Message::ConnectPeer
     } else {
-        "disconnect peer"
+        Message::DisconnectPeer
     };
-    let options = &[opt1, "back to the list"];
+    let opt1 = opt1.translate(lang);
+    let opt2 = Message::BackToTheList.translate(lang);
     firefly_ui::draw_dialog(
         theme,
         &state.font,
         &peer.name,
-        options,
+        &[opt1, opt2],
         state.cursor,
         state.input.pressed(),
     );
@@ -478,8 +484,9 @@ fn draw_peer_actions(state: &State) {
 /// Render loop for [`Scene::Ready`].
 fn draw_ready(state: &State) {
     let theme = state.settings.theme;
-    let prompt = "waiting for other peers...";
-    let option = Message::Cancel.translate(state.settings.language);
+    let lang = state.settings.language;
+    let prompt = Message::WaitingForOthers.translate(lang);
+    let option = Message::Cancel.translate(lang);
     firefly_ui::draw_dialog(
         theme,
         &state.font,
@@ -495,12 +502,15 @@ fn draw_ready(state: &State) {
 /// Shows an alert saying that the given peer disconnected (on their own).
 fn draw_disconnected(state: &State, name: &str) {
     let theme = state.settings.theme;
-    let prompt = alloc::format!("{name} disconnected");
+    let lang = state.settings.language;
+    let disconnected = Message::Disconnected.translate(lang);
+    let prompt = alloc::format!("{name} {disconnected}");
+    let option = Message::Ok.translate(lang);
     firefly_ui::draw_dialog(
         theme,
         &state.font,
         &prompt,
-        &["ok"],
+        &[option],
         0,
         state.input.pressed(),
     );

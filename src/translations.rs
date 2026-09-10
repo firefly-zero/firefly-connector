@@ -2,8 +2,15 @@ pub enum Message {
     Hello,
     Scanning,
     ConnectedPeers,
+    WaitingForOthers,
+    Disconnected,
 
     ConnectMorePeers,
+    ConnectPeer,
+    DisconnectPeer,
+    BackToTheList,
+
+    Ok,
     Confirm,
     Cancel,
     Stop,
@@ -15,8 +22,15 @@ impl firefly_ui::Translate<'static> for Message {
             Message::Hello => "hello, ",
             Message::Scanning => "scanning...",
             Message::ConnectedPeers => "connected peers",
+            Message::WaitingForOthers => "waiting for others...",
+            Message::Disconnected => "disconnected",
 
             Message::ConnectMorePeers => "connect more peers",
+            Message::ConnectPeer => "connect peer",
+            Message::DisconnectPeer => "disconnect peer",
+            Message::BackToTheList => "back to the list",
+
+            Message::Ok => "ok",
             Message::Confirm => "confirm",
             Message::Cancel => "cancel",
             Message::Stop => "stop",
