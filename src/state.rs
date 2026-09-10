@@ -8,17 +8,24 @@ static mut STATE: MaybeUninit<State> = MaybeUninit::uninit();
 pub enum Scene {
     /// Searching for more peers.
     Scanning,
+
     /// Scanning is done, list peers and ask what to do next.
     List,
+
     /// Context menu for a peer.
     PeerActions,
+
     /// User is ready to start, waiting for other peers.
     ///
     /// The screen acts as a "barrier" to prevent users
     /// starting a game while other peers are still
     /// establishing the connection.
     Ready,
+
     /// A warning about a disconnected peer.
+    ///
+    /// When user closes the alert, the app goes back to the list of peers,
+    /// with that peer now crossed out and greyed out.
     Disconnected(String),
 }
 

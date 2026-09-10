@@ -313,9 +313,32 @@ fn update_ready(state: &mut State) {
         transition(state, Scene::List);
         return;
     }
+    state.cursor += 1;
+    if state.cursor.is_multiple_of(30) {
+        unsafe { set_conn_ready(peer_map) };
+    }
     let ready_map = unsafe { get_conn_ready_map() };
     if ready_map == peer_map {
         quit();
+        return;
+    }
+
+    // A special code returned by the host function for when
+    // some peers on the list have a different list of peers from ours.
+    // Try updating the list of peers until the issue fixes itself.
+    //
+    // In the current design a device cannot say that it's not ready
+    // after sending a ready message, so we cannot transition back to the list screen.
+    // The "waiting" barrier must stay!
+    if ready_map == u32::MAX {
+        for peer in &mut state.peers {
+            if peer.state == PeerState::Hidden {
+                peer.state = PeerState::Connected;
+            }
+        }
+        let mut names = load_names();
+        names.remove(0);
+        sync_peers(&mut state.peers, names, PeerState::Hidden);
         return;
     }
 
