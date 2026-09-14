@@ -76,6 +76,7 @@ extern "C" fn update() {
         Scene::PeerActions => update_peer_actions(state),
         Scene::Ready => update_ready(state),
         Scene::Disconnected(_) => update_disconnected(state),
+        Scene::Error(_) => update_error(state),
     }
 }
 
@@ -318,28 +319,25 @@ fn update_ready(state: &mut State) {
         unsafe { set_conn_ready(peer_map) };
     }
     let ready_map = unsafe { get_conn_ready_map() };
-    if ready_map == peer_map {
+    if ready_map & peer_map == peer_map {
         quit();
         return;
     }
 
-    // A special code returned by the host function for when
-    // some peers on the list have a different list of peers from ours.
-    // Try updating the list of peers until the issue fixes itself.
+    // Possible invalid states:
     //
-    // In the current design a device cannot say that it's not ready
-    // after sending a ready message, so we cannot transition back to the list screen.
-    // The "waiting" barrier must stay!
+    //  - We have a different list of peers than one of our peers.
+    //  - We received ready state from a peer not on our list.
+    //      ready_map & peer_map == peer_map && ready_map != peer_map
+    //  - We never received the list of peers from one of our peers.
+    //      ready_map != peer_map
+    //
+    // Handling these cases requires very careful design to prevent races
+    // and bypassing the barrier. For now, we just error in the first case
+    // and don't handle the other two at all hoping that the user will cancel
+    // if the waiting takes too long.
     if ready_map == u32::MAX {
-        for peer in &mut state.peers {
-            if peer.state == PeerState::Hidden {
-                peer.state = PeerState::Connected;
-            }
-        }
-        let mut names = load_names();
-        names.remove(0);
-        sync_peers(&mut state.peers, names, PeerState::Hidden);
-        return;
+        transition(state, Scene::Error(Message::ConnectionFailed));
     }
 
     // Handle the "cancel" button.
@@ -358,6 +356,16 @@ fn update_disconnected(state: &mut State) {
     }
 }
 
+/// The update loop for [`Scene::Error`].
+fn update_error(state: &mut State) {
+    if state.input.get() == Input::Select {
+        for peer in &mut state.peers {
+            peer.state = PeerState::Removed;
+        }
+        quit();
+    }
+}
+
 #[unsafe(no_mangle)]
 extern "C" fn render() {
     let state = get_state();
@@ -369,6 +377,7 @@ extern "C" fn render() {
         Scene::PeerActions => draw_peer_actions(state),
         Scene::Ready => draw_ready(state),
         Scene::Disconnected(name) => draw_disconnected(state, name),
+        Scene::Error(msg) => draw_error(state, msg),
     }
     draw_name(state);
 }
@@ -518,12 +527,23 @@ fn draw_peer_actions(state: &State) {
 fn draw_ready(state: &State) {
     let theme = state.settings.theme;
     let lang = state.settings.language;
-    let prompt = Message::WaitingForOthers.translate(lang);
+    let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
+
+    let ready_map = unsafe { get_conn_ready_map() };
+    let peer_map = get_peer_map(&state.peers);
+    if ready_map != u32::MAX {
+        prompt = alloc::format!(
+            "{prompt} ({}/{})",
+            ready_map.count_ones(),
+            peer_map.count_ones()
+        );
+    }
+
     let option = Message::Cancel.translate(lang);
     firefly_ui::draw_dialog(
         theme,
         &state.font,
-        prompt,
+        &prompt,
         &[option],
         0,
         state.input.pressed(),
@@ -543,6 +563,22 @@ fn draw_disconnected(state: &State, name: &str) {
         theme,
         &state.font,
         &prompt,
+        &[option],
+        0,
+        state.input.pressed(),
+    );
+}
+
+/// Render loop for [`Scene::Error`].
+fn draw_error(state: &State, msg: &Message) {
+    let theme = state.settings.theme;
+    let lang = state.settings.language;
+    let option = Message::Ok.translate(lang);
+    let prompt = msg.translate(lang);
+    firefly_ui::draw_dialog(
+        theme,
+        &state.font,
+        prompt,
         &[option],
         0,
         state.input.pressed(),
