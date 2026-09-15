@@ -514,29 +514,34 @@ fn draw_peer_actions(state: &State) {
 /// Render loop for [`Scene::Ready`].
 fn draw_ready(state: &State) {
     let theme = state.settings.theme;
+    let font = &state.font;
     let lang = state.settings.language;
-    let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
 
+    // Title.
+    firefly_ui::draw_bg_box(theme);
+    let title = Message::WaitingForOthers.translate(lang);
+    firefly_ui::draw_title(title, false, font, theme.accent);
+
+    // List of peers.
     let hash = hash_peers(state);
     let peer_map = get_peer_map(&state.peers);
-    let ready_map = unsafe { get_ready_map(peer_map, hash) };
-    if ready_map != u32::MAX {
-        prompt = alloc::format!(
-            "{prompt} ({}/{})",
-            ready_map.count_ones(),
-            peer_map.count_ones()
-        );
+    let mut ready_map = unsafe { get_ready_map(peer_map, hash) };
+    let line_h = font.char_height() as i32 + 4;
+    let mut i: i32 = 1;
+    for peer in &state.peers {
+        if peer.state != PeerState::Connected {
+            continue;
+        }
+        let color = if ready_map & 1 == 1 {
+            theme.accent
+        } else {
+            theme.secondary
+        };
+        ready_map >>= 1;
+        i += 1;
+        let point = Point::new(20, 12 + i * line_h);
+        draw_text(&peer.name, font, point, color);
     }
-
-    let option = Message::Cancel.translate(lang);
-    firefly_ui::draw_dialog(
-        theme,
-        &state.font,
-        &prompt,
-        &[option],
-        0,
-        state.input.pressed(),
-    );
 }
 
 /// Render loop for [`Scene::Disconnected`].

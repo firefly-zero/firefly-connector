@@ -10,6 +10,7 @@ pub enum Message {
     WaitingForOthers,
     /// Message: "disconnected"
     Disconnected,
+    /// Message: "connection failed; check the manual"
     ConnectionFailed,
 
     /// Button: "connect more peers"
