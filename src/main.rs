@@ -2,6 +2,7 @@
 #![no_main]
 extern crate alloc;
 
+mod bindings;
 mod state;
 mod translations;
 
@@ -9,28 +10,11 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use bindings::*;
 use firefly_rust::*;
 use firefly_ui::{Input, Translate, draw_cursor};
 use state::*;
 use translations::*;
-
-#[link(wasm_import_module = "misc")]
-unsafe extern "C" {
-    /// Host function for setting the map of the peers that should stay connected.
-    ///
-    /// Must be called before exit.
-    ///
-    /// If zero is passed, the multipalyer is cancelled.
-    pub(crate) unsafe fn set_peers(peer_map: u32);
-
-    /// Host function for marking the connection as ready.
-    ///
-    /// Send the ready request to the given peer map.
-    pub(crate) unsafe fn set_conn_ready(peer_map: u32, hash: u32) -> u32;
-
-    // Host function for getting the map of peers that sent the ready message.
-    pub(crate) unsafe fn get_conn_ready_map(hash: u32) -> u32;
-}
 
 /// Runtime callback executed before the app exits.
 ///
@@ -257,7 +241,7 @@ fn update_list(state: &mut State) {
                         return;
                     }
                     let hash = hash_peers(&state.peers);
-                    let code = unsafe { set_conn_ready(peer_map, hash) };
+                    let code = unsafe { set_ready(peer_map, hash) };
                     // TODO: handle error codes
                     if code == 0 {
                         transition(state, Scene::Ready);
@@ -318,9 +302,9 @@ fn update_ready(state: &mut State) {
     let hash = hash_peers(&state.peers);
     state.cursor += 1;
     if state.cursor.is_multiple_of(30) {
-        unsafe { set_conn_ready(peer_map, hash) };
+        unsafe { set_ready(peer_map, hash) };
     }
-    let ready_map = unsafe { get_conn_ready_map(hash) };
+    let ready_map = unsafe { get_ready_map(hash) };
     if ready_map & peer_map == peer_map {
         quit();
         return;
@@ -532,7 +516,7 @@ fn draw_ready(state: &State) {
     let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
 
     let hash = hash_peers(&state.peers);
-    let ready_map = unsafe { get_conn_ready_map(hash) };
+    let ready_map = unsafe { get_ready_map(hash) };
     let peer_map = get_peer_map(&state.peers);
     if ready_map != u32::MAX {
         prompt = alloc::format!(
