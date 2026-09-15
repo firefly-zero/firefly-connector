@@ -26,10 +26,10 @@ unsafe extern "C" {
     /// Host function for marking the connection as ready.
     ///
     /// Send the ready request to the given peer map.
-    pub(crate) unsafe fn set_conn_ready(peer_map: u32) -> u32;
+    pub(crate) unsafe fn set_conn_ready(peer_map: u32, hash: u32) -> u32;
 
     // Host function for getting the map of peers that sent the ready message.
-    pub(crate) unsafe fn get_conn_ready_map() -> u32;
+    pub(crate) unsafe fn get_conn_ready_map(hash: u32) -> u32;
 }
 
 /// Runtime callback executed before the app exits.
@@ -256,7 +256,8 @@ fn update_list(state: &mut State) {
                         quit();
                         return;
                     }
-                    let code = unsafe { set_conn_ready(peer_map) };
+                    let hash = hash_peers(&state.peers);
+                    let code = unsafe { set_conn_ready(peer_map, hash) };
                     // TODO: handle error codes
                     if code == 0 {
                         transition(state, Scene::Ready);
@@ -314,11 +315,12 @@ fn update_ready(state: &mut State) {
         transition(state, Scene::List);
         return;
     }
+    let hash = hash_peers(&state.peers);
     state.cursor += 1;
     if state.cursor.is_multiple_of(30) {
-        unsafe { set_conn_ready(peer_map) };
+        unsafe { set_conn_ready(peer_map, hash) };
     }
-    let ready_map = unsafe { get_conn_ready_map() };
+    let ready_map = unsafe { get_conn_ready_map(hash) };
     if ready_map & peer_map == peer_map {
         quit();
         return;
@@ -529,7 +531,8 @@ fn draw_ready(state: &State) {
     let lang = state.settings.language;
     let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
 
-    let ready_map = unsafe { get_conn_ready_map() };
+    let hash = hash_peers(&state.peers);
+    let ready_map = unsafe { get_conn_ready_map(hash) };
     let peer_map = get_peer_map(&state.peers);
     if ready_map != u32::MAX {
         prompt = alloc::format!(
@@ -583,4 +586,40 @@ fn draw_error(state: &State, msg: &Message) {
         0,
         state.input.pressed(),
     );
+}
+
+fn hash_peers(peers: &[PeerInfo]) -> u32 {
+    let mut hash = 0;
+    for peer in peers {
+        if peer.state == PeerState::Connected {
+            hash ^= hash_string(&peer.name);
+        }
+    }
+    hash
+}
+
+/// Calculate fast non-cryptographic hash of the given string.
+fn hash_string(s: &str) -> u32 {
+    hash_bytes(s.as_bytes())
+}
+
+/// Calculate fast non-cryptographic hash of the given byte sequence.
+///
+/// Uses [joaat] algorithm under the hood.
+///
+/// [joaat]: https://en.wikipedia.org/wiki/Jenkins_hash_function
+fn hash_bytes(bytes: &[u8]) -> u32 {
+    let mut hash: u32 = 0;
+    for byte in bytes {
+        hash = hash.wrapping_add(u32::from(*byte));
+        hash = hash.wrapping_add(hash << 10);
+        hash ^= hash >> 6;
+    }
+    hash = hash.wrapping_add(hash << 3);
+    hash ^= hash >> 11;
+    hash = hash.wrapping_add(hash << 15);
+    if hash == 0 {
+        hash = 1
+    }
+    hash
 }

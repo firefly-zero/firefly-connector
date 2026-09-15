@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 pub enum Message {
     /// Message: "hello, "
     Hello,
@@ -9,6 +10,7 @@ pub enum Message {
     WaitingForOthers,
     /// Message: "disconnected"
     Disconnected,
+    ConnectionFailed,
 
     /// Button: "connect more peers"
     ConnectMorePeers,
@@ -37,6 +39,7 @@ impl firefly_ui::Translate<'static> for Message {
             Message::ConnectedPeers => "connected peers",
             Message::WaitingForOthers => "waiting for others...",
             Message::Disconnected => "disconnected",
+            Message::ConnectionFailed => "connection failed; check the manual",
 
             Message::ConnectMorePeers => "connect more peers",
             Message::ConnectPeer => "connect peer",

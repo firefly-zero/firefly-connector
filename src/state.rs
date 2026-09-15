@@ -1,3 +1,4 @@
+use crate::translations::Message;
 use alloc::{string::String, vec::Vec};
 use core::mem::MaybeUninit;
 use firefly_rust::*;
@@ -27,6 +28,8 @@ pub enum Scene {
     /// When user closes the alert, the app goes back to the list of peers,
     /// with that peer now crossed out and greyed out.
     Disconnected(String),
+
+    Error(Message),
 }
 
 #[derive(Clone, Copy, PartialEq)]
