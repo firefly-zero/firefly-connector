@@ -304,7 +304,7 @@ fn update_ready(state: &mut State) {
     if state.cursor.is_multiple_of(30) {
         unsafe { set_ready(peer_map, hash) };
     }
-    let ready_map = unsafe { get_ready_map(hash) };
+    let ready_map = unsafe { get_ready_map(peer_map, hash) };
 
     // Possible invalid states:
     //
@@ -323,7 +323,7 @@ fn update_ready(state: &mut State) {
         return;
     }
 
-    if ready_map & peer_map == peer_map {
+    if ready_map == peer_map {
         quit();
         return;
     }
@@ -518,8 +518,8 @@ fn draw_ready(state: &State) {
     let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
 
     let hash = hash_peers(state);
-    let ready_map = unsafe { get_ready_map(hash) };
     let peer_map = get_peer_map(&state.peers);
+    let ready_map = unsafe { get_ready_map(peer_map, hash) };
     if ready_map != u32::MAX {
         prompt = alloc::format!(
             "{prompt} ({}/{})",

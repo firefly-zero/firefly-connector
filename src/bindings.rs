@@ -13,5 +13,5 @@ unsafe extern "C" {
     pub(crate) unsafe fn set_ready(peer_map: u32, hash: u32) -> u32;
 
     // Host function for getting the map of peers that sent the ready message.
-    pub(crate) unsafe fn get_ready_map(hash: u32) -> u32;
+    pub(crate) unsafe fn get_ready_map(peer_map: u32, hash: u32) -> u32;
 }
