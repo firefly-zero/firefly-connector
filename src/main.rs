@@ -240,7 +240,7 @@ fn update_list(state: &mut State) {
                         quit();
                         return;
                     }
-                    let hash = hash_peers(&state.peers);
+                    let hash = hash_peers(state);
                     let code = unsafe { set_ready(peer_map, hash) };
                     // TODO: handle error codes
                     if code == 0 {
@@ -299,16 +299,12 @@ fn update_ready(state: &mut State) {
         transition(state, Scene::List);
         return;
     }
-    let hash = hash_peers(&state.peers);
+    let hash = hash_peers(state);
     state.cursor += 1;
     if state.cursor.is_multiple_of(30) {
         unsafe { set_ready(peer_map, hash) };
     }
     let ready_map = unsafe { get_ready_map(hash) };
-    if ready_map & peer_map == peer_map {
-        quit();
-        return;
-    }
 
     // Possible invalid states:
     //
@@ -324,6 +320,12 @@ fn update_ready(state: &mut State) {
     // if the waiting takes too long.
     if ready_map == u32::MAX {
         transition(state, Scene::Error(Message::ConnectionFailed));
+        return;
+    }
+
+    if ready_map & peer_map == peer_map {
+        quit();
+        return;
     }
 
     // Handle the "cancel" button.
@@ -515,7 +517,7 @@ fn draw_ready(state: &State) {
     let lang = state.settings.language;
     let mut prompt = Message::WaitingForOthers.translate(lang).to_string();
 
-    let hash = hash_peers(&state.peers);
+    let hash = hash_peers(state);
     let ready_map = unsafe { get_ready_map(hash) };
     let peer_map = get_peer_map(&state.peers);
     if ready_map != u32::MAX {
@@ -572,13 +574,14 @@ fn draw_error(state: &State, msg: &Message) {
     );
 }
 
-fn hash_peers(peers: &[PeerInfo]) -> u32 {
+fn hash_peers(state: &State) -> u32 {
     let mut hash = 0;
-    for peer in peers {
+    for peer in &state.peers {
         if peer.state == PeerState::Connected {
             hash ^= hash_string(&peer.name);
         }
     }
+    hash ^= hash_string(&state.my_name);
     hash
 }
 
