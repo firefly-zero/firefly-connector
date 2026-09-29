@@ -542,6 +542,8 @@ fn draw_ready(state: &State) {
         let point = Point::new(20, 12 + i * line_h);
         draw_text(&peer.name, font, point, color);
     }
+
+    // TODO: render the "cancel" button
 }
 
 /// Render loop for [`Scene::Disconnected`].
